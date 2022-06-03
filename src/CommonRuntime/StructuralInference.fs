@@ -296,7 +296,7 @@ module private Helpers =
 
 /// Infers the type of a simple string value
 /// Returns one of null|typeof<Bit0>|typeof<Bit1>|typeof<bool>|typeof<int>|typeof<int64>|typeof<decimal>|typeof<float>|typeof<Guid>|typeof<DateTime>|typeof<TimeSpan>|typeof<string>
-let inferPrimitiveType (cultureInfo: CultureInfo) (value: string) =
+let inferPrimitiveType (inferenceMode: InferenceMode) (cultureInfo: CultureInfo) (value: string) =
 
     // Helper for calling TextConversions.AsXyz functions
     let (|Parse|_|) func value = func cultureInfo value
@@ -325,27 +325,50 @@ let inferPrimitiveType (cultureInfo: CultureInfo) (value: string) =
             || value.IndexOf(getAbbreviatedEraName era, StringComparison.OrdinalIgnoreCase)
                >= 0)
 
-    match value with
-    | "" -> null
-    | Parse TextConversions.AsInteger 0 -> typeof<Bit0>
-    | Parse TextConversions.AsInteger 1 -> typeof<Bit1>
-    | ParseNoCulture TextConversions.AsBoolean _ -> typeof<bool>
-    | Parse TextConversions.AsInteger _ -> typeof<int>
-    | Parse TextConversions.AsInteger64 _ -> typeof<int64>
-    | Parse TextConversions.AsTimeSpan _ -> typeof<TimeSpan>
-    | Parse TextConversions.AsDateTimeOffset dateTimeOffset when not (isFakeDate dateTimeOffset.UtcDateTime value) ->
-        typeof<DateTimeOffset>
-    | Parse TextConversions.AsDateTime date when not (isFakeDate date value) -> typeof<DateTime>
-    | Parse TextConversions.AsDecimal _ -> typeof<decimal>
-    | Parse (TextConversions.AsFloat [||] false) _ -> typeof<float>
-    | Parse asGuid _ -> typeof<Guid>
-    | _ -> typeof<string>
+    let matchValue value =
+        match value with
+        | "" -> Some null
+        | Parse TextConversions.AsInteger 0 -> Some typeof<Bit0>
+        | Parse TextConversions.AsInteger 1 -> Some typeof<Bit1>
+        | ParseNoCulture TextConversions.AsBoolean _ -> Some typeof<bool>
+        | Parse TextConversions.AsInteger _ -> Some typeof<int>
+        | Parse TextConversions.AsInteger64 _ -> Some typeof<int64>
+        | Parse TextConversions.AsTimeSpan _ -> Some typeof<TimeSpan>
+        | Parse TextConversions.AsDateTimeOffset dateTimeOffset when not (isFakeDate dateTimeOffset.UtcDateTime value) ->
+            Some typeof<DateTimeOffset>
+        | Parse TextConversions.AsDateTime date when not (isFakeDate date value) -> Some typeof<DateTime>
+        | Parse TextConversions.AsDecimal _ -> Some typeof<decimal>
+        | Parse (TextConversions.AsFloat [||] false) _ -> Some typeof<float>
+        | Parse asGuid _ -> Some typeof<Guid>
+        | _ -> None
+
+    let matchInlineSchema value =
+        match value with
+        | "" -> Some null
+        | "date" -> Some typeof<DateTime>
+        | "int" -> Some typeof<int>
+        | "float" -> Some typeof<float>
+        | _ -> None
+
+    let fallbackType = typeof<string>
+
+    match inferenceMode with
+    | InferenceMode.InferTypesFromValuesOnly -> matchValue value |> Option.defaultValue fallbackType
+    | InferenceMode.InferTypesFromInlineSchemasOnly -> matchInlineSchema value |> Option.defaultValue fallbackType
+    | InferenceMode.InferTypesFromValuesAndInlineSchemas ->
+        matchInlineSchema value
+        |> Option.orElseWith (fun () -> matchValue value)
+        |> Option.defaultValue fallbackType
+    | _ -> failwith (sprintf "Unexpected inference mode value: %A" inferenceMode)
 
 /// Infers the type of a simple string value
-let getInferedTypeFromString cultureInfo value unit =
-    match inferPrimitiveType cultureInfo value with
-    | null -> InferedType.Null
-    | typ -> InferedType.Primitive(typ, unit, false)
+let getInferedTypeFromString inferenceMode cultureInfo value unit =
+    match inferenceMode with
+    | InferenceMode.NoInference -> InferedType.Primitive(typeof<string>, None, false)
+    | _ ->
+        match inferPrimitiveType inferenceMode cultureInfo value with
+        | null -> InferedType.Null
+        | typ -> InferedType.Primitive(typ, unit, false)
 
 type IUnitsOfMeasureProvider =
     abstract SI: str: string -> System.Type

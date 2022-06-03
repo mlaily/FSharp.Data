@@ -2,6 +2,7 @@ namespace rec FSharp.Data.Runtime.StructuralTypes
 
 open System
 open FSharp.Data.Runtime
+open FSharp.Data.Runtime.StructuralTypes
 
 // --------------------------------------------------------------------------------------
 // Types that represent the result of the type inference
@@ -228,3 +229,14 @@ type TypeWrapper =
     | Option
     /// The type T will be converter to type Nullable<T>
     | Nullable
+
+type InferenceMode =
+    /// Used as a default value for backward compatibility with the legacy InferTypesFromValues boolean static parameter.
+    /// The actual behaviour will depend on whether InferTypesFromValues is set to true (default) or false.
+    | BackwardCompatible = 0
+    /// Type everything as strings
+    /// (or the most basic type possible for the value when it's not string, e.g. for json numbers or booleans).
+    | NoInference = 1
+    | InferTypesFromValuesOnly = 2
+    | InferTypesFromValuesAndInlineSchemas = 3
+    | InferTypesFromInlineSchemasOnly = 4

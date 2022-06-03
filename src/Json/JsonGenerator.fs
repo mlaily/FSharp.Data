@@ -27,17 +27,19 @@ type internal JsonGenerationContext =
       JsonRuntimeType: Type
       TypeCache: Dictionary<InferedType, ProvidedTypeDefinition>
       PreferDictionaries: bool
-      GenerateConstructors: bool }
+      GenerateConstructors: bool
+      InferenceMode: InferenceMode }
 
-    static member Create(cultureStr, tpType, ?uniqueNiceName, ?typeCache, ?preferDictionaries) =
+    static member Create(cultureStr, tpType, ?uniqueNiceName, ?typeCache, ?preferDictionaries, ?inferenceMode) =
         let uniqueNiceName =
             defaultArg uniqueNiceName (NameUtils.uniqueGenerator NameUtils.nicePascalName)
 
         let typeCache = defaultArg typeCache (Dictionary())
         let preferDictionaries = defaultArg preferDictionaries false
-        JsonGenerationContext.Create(cultureStr, tpType, uniqueNiceName, typeCache, preferDictionaries, true)
+        let inferenceMode = defaultArg inferenceMode (InferenceMode.InferTypesFromValuesOnly)
+        JsonGenerationContext.Create(cultureStr, tpType, uniqueNiceName, typeCache, preferDictionaries, true, inferenceMode)
 
-    static member Create(cultureStr, tpType, uniqueNiceName, typeCache, preferDictionaries, generateConstructors) =
+    static member Create(cultureStr, tpType, uniqueNiceName, typeCache, preferDictionaries, generateConstructors, inferenceMode) =
         { CultureStr = cultureStr
           TypeProviderType = tpType
           UniqueNiceName = uniqueNiceName
@@ -46,7 +48,8 @@ type internal JsonGenerationContext =
           JsonRuntimeType = typeof<JsonRuntime>
           TypeCache = typeCache
           PreferDictionaries = preferDictionaries
-          GenerateConstructors = generateConstructors }
+          GenerateConstructors = generateConstructors
+          InferenceMode = inferenceMode }
 
     member x.MakeOptionType(typ: Type) =
         typedefof<option<_>>.MakeGenericType typ
@@ -374,6 +377,7 @@ module JsonTypeBuilder =
                         let infType =
                             [ for prop in props ->
                                   StructuralInference.getInferedTypeFromString
+                                      ctx.InferenceMode
                                       (TextRuntime.GetCulture ctx.CultureStr)
                                       prop.Name
                                       None ]
