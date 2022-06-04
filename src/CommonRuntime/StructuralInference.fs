@@ -320,9 +320,9 @@ let parseUnitOfMeasure (provider: IUnitsOfMeasureProvider) (str: string) =
         let unit = provider.SI str
         if unit = null then None else Some unit
 
-/// The schema may be set explicitly. This table specifies the mapping
-/// from the names that users can use to the types used.
-let private nameToType =
+/// The infered types may be set explicitly via inline schemas.
+/// This table specifies the mapping from the names that users can use to the types used.
+let nameToType =
     [ "int", (typeof<int>, TypeWrapper.None)
       "int64", (typeof<int64>, TypeWrapper.None)
       "bool", (typeof<bool>, TypeWrapper.None)
@@ -333,15 +333,6 @@ let private nameToType =
       "timespan", (typeof<TimeSpan>, TypeWrapper.None)
       "guid", (typeof<Guid>, TypeWrapper.None)
       "string", (typeof<String>, TypeWrapper.None)
-      "int?", (typeof<int>, TypeWrapper.Nullable)
-      "int64?", (typeof<int64>, TypeWrapper.Nullable)
-      "bool?", (typeof<bool>, TypeWrapper.Nullable)
-      "float?", (typeof<float>, TypeWrapper.Nullable)
-      "decimal?", (typeof<decimal>, TypeWrapper.Nullable)
-      "date?", (typeof<DateTime>, TypeWrapper.Nullable)
-      "datetimeoffset?", (typeof<DateTimeOffset>, TypeWrapper.Nullable)
-      "timespan?", (typeof<TimeSpan>, TypeWrapper.Nullable)
-      "guid?", (typeof<Guid>, TypeWrapper.Nullable)
       "int option", (typeof<int>, TypeWrapper.Option)
       "int64 option", (typeof<int64>, TypeWrapper.Option)
       "bool option", (typeof<bool>, TypeWrapper.Option)
@@ -370,7 +361,7 @@ let private validInlineSchema =
 /// This can be of the form: <c>type|measure|type&lt;measure&gt;</c>
 /// type{measure} is also supported to ease definition in xml values.
 /// </summary>
-let parseTypeAndUnit unitsOfMeasureProvider str =
+let parseTypeAndUnit unitsOfMeasureProvider (nameToType: IDictionary<string, (Type * TypeWrapper)>) str =
     let m = typeAndUnitRegex.Value.Match(str)
 
     if m.Success then
@@ -418,7 +409,10 @@ module private Helpers =
 
 /// Infers the type of a string value
 /// Returns one of null|typeof<Bit0>|typeof<Bit1>|typeof<bool>|typeof<int>|typeof<int64>|typeof<decimal>|typeof<float>|typeof<Guid>|typeof<DateTime>|typeof<TimeSpan>|typeof<string>
-let inferPrimitiveType (inferenceMode: InferenceMode) (cultureInfo: CultureInfo) (value: string) =
+/// with the desiredUnit applied,
+/// or a value parsed from an inline schema.
+/// (For inline schemas, the desiredUnit is ignored. The unit parsed from the schema takes precedence)
+let inferPrimitiveType (inferenceMode: InferenceMode) (cultureInfo: CultureInfo) (value: string) (desiredUnit: Type option) =
 
     // Helper for calling TextConversions.AsXyz functions
     let (|Parse|_|) func value = func cultureInfo value
@@ -448,25 +442,26 @@ let inferPrimitiveType (inferenceMode: InferenceMode) (cultureInfo: CultureInfo)
                >= 0)
 
     let matchValue value =
+        let makePrimitive typ = Some (InferedType.Primitive(typ, desiredUnit, false))
         match value with
-        | "" -> Some null
-        | Parse TextConversions.AsInteger 0 -> Some typeof<Bit0>
-        | Parse TextConversions.AsInteger 1 -> Some typeof<Bit1>
-        | ParseNoCulture TextConversions.AsBoolean _ -> Some typeof<bool>
-        | Parse TextConversions.AsInteger _ -> Some typeof<int>
-        | Parse TextConversions.AsInteger64 _ -> Some typeof<int64>
-        | Parse TextConversions.AsTimeSpan _ -> Some typeof<TimeSpan>
+        | "" -> Some InferedType.Null
+        | Parse TextConversions.AsInteger 0 -> makePrimitive typeof<Bit0>
+        | Parse TextConversions.AsInteger 1 -> makePrimitive typeof<Bit1>
+        | ParseNoCulture TextConversions.AsBoolean _ -> makePrimitive typeof<bool>
+        | Parse TextConversions.AsInteger _ -> makePrimitive typeof<int>
+        | Parse TextConversions.AsInteger64 _ -> makePrimitive typeof<int64>
+        | Parse TextConversions.AsTimeSpan _ -> makePrimitive typeof<TimeSpan>
         | Parse TextConversions.AsDateTimeOffset dateTimeOffset when not (isFakeDate dateTimeOffset.UtcDateTime value) ->
-            Some typeof<DateTimeOffset>
-        | Parse TextConversions.AsDateTime date when not (isFakeDate date value) -> Some typeof<DateTime>
-        | Parse TextConversions.AsDecimal _ -> Some typeof<decimal>
-        | Parse (TextConversions.AsFloat [||] false) _ -> Some typeof<float>
-        | Parse asGuid _ -> Some typeof<Guid>
+            makePrimitive typeof<DateTimeOffset>
+        | Parse TextConversions.AsDateTime date when not (isFakeDate date value) -> makePrimitive typeof<DateTime>
+        | Parse TextConversions.AsDecimal _ -> makePrimitive typeof<decimal>
+        | Parse (TextConversions.AsFloat [||] false) _ -> makePrimitive typeof<float>
+        | Parse asGuid _ -> makePrimitive typeof<Guid>
         | _ -> None
 
     let matchInlineSchema value =
         match value with
-        | "" -> Some null
+        | "" -> Some InferedType.Null
         | nonEmptyValue ->
             // Note: units of measure are currently not supported here.
             // We have all the required information for them, we "just" need to propagate the information up.
@@ -479,17 +474,16 @@ let inferPrimitiveType (inferenceMode: InferenceMode) (cultureInfo: CultureInfo)
             match m.Success with
             | false -> None
             | true ->
-                let typ, unit = parseTypeAndUnit uomProvier m.Groups.["typeDefinition"].Value
+                let typ, unit = parseTypeAndUnit uomProvier nameToType m.Groups.["typeDefinition"].Value
                 match typ, unit with
                 | None, _ -> None
                 | Some (typ, typeWrapper), unit ->
-                    let inferedValue = PrimitiveInferedValue.Create(typ, typeWrapper, unit)
-                    match inferedValue.TypeWrapper with
-                    | TypeWrapper.None -> Some inferedValue.RuntimeType
-                    | TypeWrapper.Option -> Some (typedefof<option<_>>.MakeGenericType inferedValue.RuntimeType)
-                    | TypeWrapper.Nullable -> Some (typedefof<Nullable<_>>.MakeGenericType inferedValue.RuntimeType)
+                    match typeWrapper with
+                    | TypeWrapper.None -> Some (InferedType.Primitive(typ, unit, false))
+                    | TypeWrapper.Option -> Some (InferedType.Primitive(typ, unit, true))
+                    | TypeWrapper.Nullable -> failwith "Nullable types are not allowed in inline schemas."
 
-    let fallbackType = typeof<string>
+    let fallbackType = InferedType.Primitive(typeof<string>, None, false)
 
     match inferenceMode with
     | InferenceMode.InferTypesFromValuesOnly ->
@@ -508,7 +502,4 @@ let inferPrimitiveType (inferenceMode: InferenceMode) (cultureInfo: CultureInfo)
 let getInferedTypeFromString inferenceMode cultureInfo value unit =
     match inferenceMode with
     | InferenceMode.NoInference -> InferedType.Primitive(typeof<string>, None, false)
-    | _ ->
-        match inferPrimitiveType inferenceMode cultureInfo value with
-        | null -> InferedType.Null
-        | typ -> InferedType.Primitive(typ, unit, false)
+    | _ -> inferPrimitiveType inferenceMode cultureInfo value unit

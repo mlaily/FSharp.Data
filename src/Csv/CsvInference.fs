@@ -9,6 +9,22 @@ open FSharp.Data
 open FSharp.Data.Runtime
 open FSharp.Data.Runtime.StructuralTypes
 
+/// This table specifies the mapping from the names that users can use to the types used.
+/// The CsvProvider uses the same mapping as the one used for inline schemas, extended with nullable types.
+let private nameToTypeWithNullables =
+    [ for KeyValue(k, v) in StructuralInference.nameToType -> k, v ]
+    @
+    [ "int?", (typeof<int>, TypeWrapper.Nullable)
+      "int64?", (typeof<int64>, TypeWrapper.Nullable)
+      "bool?", (typeof<bool>, TypeWrapper.Nullable)
+      "float?", (typeof<float>, TypeWrapper.Nullable)
+      "decimal?", (typeof<decimal>, TypeWrapper.Nullable)
+      "date?", (typeof<DateTime>, TypeWrapper.Nullable)
+      "datetimeoffset?", (typeof<DateTimeOffset>, TypeWrapper.Nullable)
+      "timespan?", (typeof<TimeSpan>, TypeWrapper.Nullable)
+      "guid?", (typeof<Guid>, TypeWrapper.Nullable) ]
+    |> dict
+
 let private nameAndTypeRegex =
     lazy Regex(@"^(?<name>.+)\((?<type>.+)\)$", RegexOptions.Compiled ||| RegexOptions.RightToLeft)
 
@@ -33,6 +49,7 @@ type private SchemaParseResult =
 /// (if we succeed we override the inferred schema, otherwise, we just
 /// override the header name)
 let private parseSchemaItem unitsOfMeasureProvider str forSchemaOverride =
+    let parseTypeAndUnit = StructuralInference.parseTypeAndUnit unitsOfMeasureProvider nameToTypeWithNullables
     let name, typ, unit, isOverrideByName, originalName =
         let m = overrideByNameRegex.Value.Match str
 
@@ -41,7 +58,7 @@ let private parseSchemaItem unitsOfMeasureProvider str forSchemaOverride =
             let originalName = m.Groups.["name"].Value.TrimEnd()
             let newName = m.Groups.["newName"].Value.Trim()
             let typeAndUnit = m.Groups.["type"].Value.Trim()
-            let typ, unit = StructuralInference.parseTypeAndUnit unitsOfMeasureProvider typeAndUnit
+            let typ, unit = parseTypeAndUnit typeAndUnit
 
             if typ.IsNone && typeAndUnit <> "" then
                 failwithf "Invalid type: %s" typeAndUnit
@@ -54,11 +71,11 @@ let private parseSchemaItem unitsOfMeasureProvider str forSchemaOverride =
                 // name (type|measure|type<measure>)
                 let name = m.Groups.["name"].Value.TrimEnd()
                 let typeAndUnit = m.Groups.["type"].Value.Trim()
-                let typ, unit = StructuralInference.parseTypeAndUnit unitsOfMeasureProvider typeAndUnit
+                let typ, unit = parseTypeAndUnit typeAndUnit
                 name, typ, unit, false, ""
             elif forSchemaOverride then
                 // type|type<measure>
-                let typ, unit = StructuralInference.parseTypeAndUnit unitsOfMeasureProvider str
+                let typ, unit = parseTypeAndUnit str
 
                 match typ, unit with
                 | None, _ -> str, None, None, false, ""
