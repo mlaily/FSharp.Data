@@ -33,7 +33,6 @@ let rec inferType unitsOfMeasureProvider inferenceMode cultureInfo parentName js
     | JsonValue.Boolean _ -> InferedType.Primitive(typeof<bool>, None, false)
     | JsonValue.String s ->
         StructuralInference.getInferedTypeFromString unitsOfMeasureProvider inferenceMode cultureInfo s None
-    | JsonValue.String _ -> InferedType.Primitive(typeof<string>, None, false)
     // For numbers, we test if it is integer and if it fits in smaller range
     | JsonValue.Number 0M when shouldInferNonStringFromValue -> InferedType.Primitive(typeof<Bit0>, None, false)
     | JsonValue.Number 1M when shouldInferNonStringFromValue -> InferedType.Primitive(typeof<Bit1>, None, false)
