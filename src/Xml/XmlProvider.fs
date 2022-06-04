@@ -65,6 +65,8 @@ type public XmlProvider(cfg: TypeProviderConfig) as this =
             if sampleIsList then
                 failwith "When the Schema parameter is used, the SampleIsList parameter must be set to false"
 
+        let unitsOfMeasureProvider = ProviderHelpers.unitsOfMeasureProvider
+
         let getSpec _ value =
 
             if schema <> "" then
@@ -84,7 +86,8 @@ type public XmlProvider(cfg: TypeProviderConfig) as this =
                 use _holder = IO.logTime "TypeGeneration" sample
 
                 let ctx =
-                    XmlGenerationContext.Create(cultureStr, tpType, globalInference || schema <> "")
+                    XmlGenerationContext.Create(
+                        unitsOfMeasureProvider, inferenceMode, cultureStr, tpType, globalInference || schema <> "")
 
                 let result = XmlTypeBuilder.generateXmlType ctx inferedType
 
@@ -114,6 +117,7 @@ type public XmlProvider(cfg: TypeProviderConfig) as this =
 
                     samples
                     |> XmlInference.inferType
+                        unitsOfMeasureProvider
                         inferenceMode
                         (TextRuntime.GetCulture cultureStr)
                         false
@@ -123,7 +127,7 @@ type public XmlProvider(cfg: TypeProviderConfig) as this =
                 use _holder = IO.logTime "TypeGeneration" sample
 
                 let ctx =
-                    XmlGenerationContext.Create(cultureStr, tpType, globalInference || schema <> "")
+                    XmlGenerationContext.Create(unitsOfMeasureProvider, inferenceMode, cultureStr, tpType, globalInference || schema <> "")
 
                 let result = XmlTypeBuilder.generateXmlType ctx inferedType
 

@@ -411,8 +411,8 @@ module private Helpers =
 /// Returns one of null|typeof<Bit0>|typeof<Bit1>|typeof<bool>|typeof<int>|typeof<int64>|typeof<decimal>|typeof<float>|typeof<Guid>|typeof<DateTime>|typeof<TimeSpan>|typeof<string>
 /// with the desiredUnit applied,
 /// or a value parsed from an inline schema.
-/// (For inline schemas, the desiredUnit is ignored. The unit parsed from the schema takes precedence)
-let inferPrimitiveType (inferenceMode: InferenceMode) (cultureInfo: CultureInfo) (value: string) (desiredUnit: Type option) =
+/// (For inline schemas, the unit parsed from the schema takes precedence over desiredUnit when present)
+let inferPrimitiveType (unitsOfMeasureProvider: IUnitsOfMeasureProvider) (inferenceMode: InferenceMode) (cultureInfo: CultureInfo) (value: string) (desiredUnit: Type option) =
 
     // Helper for calling TextConversions.AsXyz functions
     let (|Parse|_|) func value = func cultureInfo value
@@ -463,18 +463,16 @@ let inferPrimitiveType (inferenceMode: InferenceMode) (cultureInfo: CultureInfo)
         match value with
         | "" -> Some InferedType.Null
         | nonEmptyValue ->
-            // Note: units of measure are currently not supported here.
-            // We have all the required information for them, we "just" need to propagate the information up.
-            // Since all the machinery to generate UoM types requires the type provider helpers and conversion generators,
-            // supporting UoM here would probably requires us to return an abstraction (PrimitiveInferedValue?)
-            // instead of directly returning a type like we currently do...
-            let uomProvier = defaultUnitsOfMeasureProvider
             // Validates that it looks like an inline schema before trying to extract the type and unit:
             let m = validInlineSchema.Value.Match(nonEmptyValue)
             match m.Success with
             | false -> None
             | true ->
-                let typ, unit = parseTypeAndUnit uomProvier nameToType m.Groups.["typeDefinition"].Value
+                let typ, unit = parseTypeAndUnit unitsOfMeasureProvider nameToType m.Groups.["typeDefinition"].Value
+                let unit =
+                    if unit.IsNone
+                    then desiredUnit
+                    else unit
                 match typ, unit with
                 | None, _ -> None
                 | Some (typ, typeWrapper), unit ->
@@ -499,7 +497,7 @@ let inferPrimitiveType (inferenceMode: InferenceMode) (cultureInfo: CultureInfo)
     | _ -> failwith (sprintf "Unexpected inference mode value: %A" inferenceMode)
 
 /// Infers the type of a simple string value
-let getInferedTypeFromString inferenceMode cultureInfo value unit =
+let getInferedTypeFromString unitsOfMeasureProvider inferenceMode cultureInfo value unit =
     match inferenceMode with
     | InferenceMode.NoInference -> InferedType.Primitive(typeof<string>, None, false)
-    | _ -> inferPrimitiveType inferenceMode cultureInfo value unit
+    | _ -> inferPrimitiveType unitsOfMeasureProvider inferenceMode cultureInfo value unit
