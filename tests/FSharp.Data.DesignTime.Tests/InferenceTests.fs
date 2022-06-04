@@ -16,14 +16,15 @@ let SimpleCollection typ =
   InferedType.Collection([ typeTag typ], Map.ofSeq [typeTag typ, (InferedMultiplicity.Multiple, typ)])
 
 let culture = TextRuntime.GetCulture ""
+let inferenceMode = InferenceMode.InferTypesFromValuesOnly
+let unitsOfMeasureProvider = ProviderHelpers.unitsOfMeasureProvider
 
 let inferType (csv:CsvFile) inferRows missingValues cultureInfo schema assumeMissingValues preferOptionals =
-    let headerNamesAndUnits, schema = parseHeaders csv.Headers csv.NumberOfColumns schema ProviderHelpers.unitsOfMeasureProvider
-    inferType headerNamesAndUnits schema (csv.Rows |> Seq.map (fun x -> x.Columns)) inferRows missingValues cultureInfo assumeMissingValues preferOptionals
+    let headerNamesAndUnits, schema = parseHeaders csv.Headers csv.NumberOfColumns schema unitsOfMeasureProvider
+    inferType headerNamesAndUnits schema (csv.Rows |> Seq.map (fun x -> x.Columns)) inferRows missingValues inferenceMode cultureInfo assumeMissingValues preferOptionals unitsOfMeasureProvider
 
 let toRecord fields = InferedType.Record(None, fields, false)
 
-let inferTypesFromValues = true
 
 [<Test>]
 let ``List.pairBy helper function works``() =
@@ -46,14 +47,14 @@ let ``List.pairBy helper function preserves order``() =
 let ``Finds common subtype of numeric types (decimal)``() =
   let source = JsonValue.Parse """[ 10, 10.23 ]"""
   let expected = SimpleCollection(InferedType.Primitive(typeof<decimal>, None, false))
-  let actual = JsonInference.inferType inferTypesFromValues culture "" source
+  let actual = JsonInference.inferType unitsOfMeasureProvider inferenceMode culture "" source
   actual |> should equal expected
 
 [<Test>]
 let ``Finds common subtype of numeric types (int64)``() =
   let source = JsonValue.Parse """[ 10, 2147483648 ]"""
   let expected = SimpleCollection(InferedType.Primitive(typeof<int64>, None, false))
-  let actual = JsonInference.inferType inferTypesFromValues culture "" source
+  let actual = JsonInference.inferType unitsOfMeasureProvider inferenceMode culture "" source
   actual |> should equal expected
 
 [<Test>]
@@ -64,7 +65,7 @@ let ``Infers heterogeneous type of InferedType.Primitives``() =
         ([ InferedTypeTag.Number; InferedTypeTag.Boolean ],
          [ InferedTypeTag.Number, (Single, InferedType.Primitive(typeof<Bit1>, None, false))
            InferedTypeTag.Boolean, (Single, InferedType.Primitive(typeof<bool>, None, false)) ] |> Map.ofList)
-  let actual = JsonInference.inferType inferTypesFromValues culture "" source
+  let actual = JsonInference.inferType unitsOfMeasureProvider inferenceMode culture "" source
   actual |> should equal expected
 
 [<Test>]
@@ -76,14 +77,14 @@ let ``Infers heterogeneous type of InferedType.Primitives and nulls``() =
          [ InferedTypeTag.Null, (Single, InferedType.Null)
            InferedTypeTag.Number, (Single, InferedType.Primitive(typeof<Bit1>, None, false))
            InferedTypeTag.Boolean, (Single, InferedType.Primitive(typeof<bool>, None, false)) ] |> Map.ofList)
-  let actual = JsonInference.inferType inferTypesFromValues culture "" source
+  let actual = JsonInference.inferType unitsOfMeasureProvider inferenceMode culture "" source
   actual |> should equal expected
 
 [<Test>]
 let ``Finds common subtype of numeric types (float)``() =
   let source = JsonValue.Parse """[ 10, 10.23, 79228162514264337593543950336 ]"""
   let expected = SimpleCollection(InferedType.Primitive(typeof<float>, None, false))
-  let actual = JsonInference.inferType inferTypesFromValues culture "" source
+  let actual = JsonInference.inferType unitsOfMeasureProvider inferenceMode culture "" source
   actual |> should equal expected
 
 [<Test>]
@@ -95,7 +96,7 @@ let ``Infers heterogeneous type of InferedType.Primitives and records``() =
          [ InferedTypeTag.Number, (Multiple, InferedType.Primitive(typeof<int>, None, false))
            InferedTypeTag.Record None,
              (Single, toRecord [ { Name="a"; Type=InferedType.Primitive(typeof<Bit0>, None, false) } ]) ] |> Map.ofList)
-  let actual = JsonInference.inferType inferTypesFromValues culture "" source
+  let actual = JsonInference.inferType unitsOfMeasureProvider inferenceMode culture "" source
   actual |> should equal expected
 
 [<Test>]
@@ -108,7 +109,7 @@ let ``Merges types in a collection of collections``() =
     |> toRecord
     |> SimpleCollection
     |> SimpleCollection
-  let actual = JsonInference.inferType inferTypesFromValues culture "" source
+  let actual = JsonInference.inferType unitsOfMeasureProvider inferenceMode culture "" source
   actual |> should equal expected
 
 [<Test>]
@@ -120,7 +121,7 @@ let ``Unions properties of records in a collection``() =
       { Name = "c"; Type = InferedType.Primitive(typeof<bool>, None, true) } ]
     |> toRecord
     |> SimpleCollection
-  let actual = JsonInference.inferType inferTypesFromValues culture "" source
+  let actual = JsonInference.inferType unitsOfMeasureProvider inferenceMode culture "" source
   actual |> should equal expected
 
 [<Test>]
@@ -130,7 +131,7 @@ let ``Null should make string optional``() =
     [ { Name = "a"; Type = InferedType.Primitive(typeof<string>, None, true) } ]
     |> toRecord
     |> SimpleCollection
-  let actual = JsonInference.inferType inferTypesFromValues culture "" source
+  let actual = JsonInference.inferType unitsOfMeasureProvider inferenceMode culture "" source
   actual |> should equal expected
 
 [<Test>]
@@ -147,7 +148,7 @@ let ``Infers mixed fields of a a record as heterogeneous type with nulls (1.)``(
     [ { Name = "a"; Type = InferedType.Primitive(typeof<int>, None, true) } ]
     |> toRecord
     |> SimpleCollection
-  let actual = JsonInference.inferType inferTypesFromValues culture "" source
+  let actual = JsonInference.inferType unitsOfMeasureProvider inferenceMode culture "" source
   actual |> should equal expected
 
 [<Test>]
@@ -157,7 +158,7 @@ let ``Null makes a record optional``() =
     [ { Name = "a"; Type = InferedType.Record(Some "a", [{ Name = "b"; Type = InferedType.Primitive(typeof<Bit1>, None, false) }], true) } ]
     |> toRecord
     |> SimpleCollection
-  let actual = JsonInference.inferType inferTypesFromValues culture "" source
+  let actual = JsonInference.inferType unitsOfMeasureProvider inferenceMode culture "" source
   actual |> should equal expected
 
 [<Test>]
@@ -170,7 +171,7 @@ let ``Infers mixed fields of a record as heterogeneous type``() =
     [ { Name = "a"; Type = InferedType.Heterogeneous cases }]
     |> toRecord
     |> SimpleCollection
-  let actual = JsonInference.inferType inferTypesFromValues culture "" source
+  let actual = JsonInference.inferType unitsOfMeasureProvider inferenceMode culture "" source
   actual |> should equal expected
 
 [<Test>]
@@ -180,7 +181,7 @@ let ``Infers mixed fields of a record as heterogeneous type with nulls (2.)``() 
     [ { Name = "a"; Type = InferedType.Primitive(typeof<int>, None, true) }]
     |> toRecord
     |> SimpleCollection
-  let actual = JsonInference.inferType inferTypesFromValues culture "" source
+  let actual = JsonInference.inferType unitsOfMeasureProvider inferenceMode culture "" source
   actual |> should equal expected
 
 [<Test>]
@@ -192,7 +193,7 @@ let ``Inference of multiple nulls works``() =
         ([ InferedTypeTag.Number; InferedTypeTag.Collection ],
          [ InferedTypeTag.Collection, (Single, SimpleCollection(toRecord [prop]))
            InferedTypeTag.Number, (Single, InferedType.Primitive(typeof<Bit0>, None, false)) ] |> Map.ofList)
-  let actual = JsonInference.inferType inferTypesFromValues culture "" source
+  let actual = JsonInference.inferType unitsOfMeasureProvider inferenceMode culture "" source
   actual |> should equal expected
 
 [<Test>]
@@ -295,8 +296,8 @@ let ``Infers units of measure correctly``() =
       ||> CsvInference.getFields false
       |> List.map (fun field ->
           field.Name,
-          field.RuntimeType,
-          prettyTypeName field.TypeWithMeasure)
+          field.Value.RuntimeType,
+          prettyTypeName field.Value.TypeWithMeasure)
 
     let propString =  "String(metre)"      , typeof<string>  , "string"
     let propFloat =   "Float"              , typeof<float>   , "float<meter>"
@@ -319,9 +320,9 @@ let ``Inference schema override by column name``() =
     ||> CsvInference.getFields false
     |> List.map (fun field ->
         field.Name,
-        field.RuntimeType,
-        prettyTypeName field.TypeWithMeasure,
-        field.TypeWrapper)
+        field.Value.RuntimeType,
+        prettyTypeName field.Value.TypeWithMeasure,
+        field.Value.TypeWrapper)
 
   let col1 = "A"       , typeof<int>    , "int<second>", TypeWrapper.None
   let col2 = "B"       , typeof<decimal>, "decimal"    , TypeWrapper.Nullable
@@ -342,9 +343,9 @@ let ``Inference schema override by parameter``() =
     ||> CsvInference.getFields false
     |> List.map (fun field ->
         field.Name,
-        field.RuntimeType,
-        prettyTypeName field.TypeWithMeasure,
-        field.TypeWrapper)
+        field.Value.RuntimeType,
+        prettyTypeName field.Value.TypeWithMeasure,
+        field.Value.TypeWrapper)
 
   let col1 = "Column1" , typeof<float>, "float"        , TypeWrapper.None
   let col2 = "Foo"     , typeof<int>  , "int"          , TypeWrapper.None
@@ -365,13 +366,13 @@ let ``Doesn't infer 12-002 as a date``() =
         ([ InferedTypeTag.String; InferedTypeTag.Number],
          [ InferedTypeTag.String, (Multiple, InferedType.Primitive(typeof<string>, None, false))
            InferedTypeTag.Number, (Single, InferedType.Primitive(typeof<Bit1>, None, false)) ] |> Map.ofList)
-  let actual = JsonInference.inferType inferTypesFromValues culture "" source
+  let actual = JsonInference.inferType unitsOfMeasureProvider inferenceMode culture "" source
   actual |> should equal expected
 
 [<Test>]
 let ``Doesn't infer ad3mar as a date``() =
-  StructuralInference.inferPrimitiveType CultureInfo.InvariantCulture "ad3mar"
-  |> should equal typeof<string>
+  StructuralInference.inferPrimitiveType unitsOfMeasureProvider inferenceMode CultureInfo.InvariantCulture "ad3mar" None
+  |> should equal (InferedType.Primitive(typeof<string>, None, false))
 
 [<Test>]
 let ``Inference with % suffix``() =
@@ -401,7 +402,7 @@ let getInferedTypeFromSamples samples =
     let culture = System.Globalization.CultureInfo.InvariantCulture
     samples
     |> Array.map XElement.Parse
-    |> XmlInference.inferType true culture false false
+    |> XmlInference.inferType unitsOfMeasureProvider inferenceMode culture false false
     |> Seq.fold (subtypeInfered false) InferedType.Top
 
 

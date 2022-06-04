@@ -6,6 +6,7 @@ open ProviderImplementation
 open ProviderImplementation.ProvidedTypes
 open ProviderImplementation.ProvidedTypesTesting
 open FSharp.Data.Runtime
+open FSharp.Data.Runtime.StructuralTypes
 
 type CsvProviderArgs =
     { Sample : string
@@ -34,7 +35,8 @@ type XmlProviderArgs =
       ResolutionFolder : string
       EmbeddedResource : string 
       InferTypesFromValues : bool
-      Schema : string }
+      Schema : string
+      InferenceMode: InferenceMode }
 
 type JsonProviderArgs =
     { Sample : string
@@ -45,7 +47,8 @@ type JsonProviderArgs =
       ResolutionFolder : string
       EmbeddedResource : string
       InferTypesFromValues : bool
-      PreferDictionaries : bool }
+      PreferDictionaries : bool
+      InferenceMode: InferenceMode }
 
 type HtmlProviderArgs =
     { Sample : string
@@ -55,7 +58,8 @@ type HtmlProviderArgs =
       Culture : string
       Encoding : string
       ResolutionFolder : string
-      EmbeddedResource : string }
+      EmbeddedResource : string
+      InferenceMode: InferenceMode }
 
 type WorldBankProviderArgs =
     { Sources : string
@@ -101,7 +105,8 @@ type TypeProviderInstantiation =
                    box x.ResolutionFolder
                    box x.EmbeddedResource
                    box x.InferTypesFromValues
-                   box x.Schema |] 
+                   box x.Schema
+                   box x.InferenceMode |] 
             | Json x -> 
                 (fun cfg -> new JsonProvider(cfg) :> TypeProviderForNamespaces),
                 [| box x.Sample
@@ -112,7 +117,8 @@ type TypeProviderInstantiation =
                    box x.ResolutionFolder
                    box x.EmbeddedResource
                    box x.InferTypesFromValues
-                   box x.PreferDictionaries |]
+                   box x.PreferDictionaries
+                   box x.InferenceMode |]
             | Html x ->
                 (fun cfg -> new HtmlProvider(cfg) :> TypeProviderForNamespaces),
                 [| box x.Sample
@@ -122,7 +128,8 @@ type TypeProviderInstantiation =
                    box x.Culture
                    box x.Encoding
                    box x.ResolutionFolder
-                   box x.EmbeddedResource |]
+                   box x.EmbeddedResource
+                   box x.InferenceMode |]
             | WorldBank x ->
                 (fun cfg -> new WorldBankProvider(cfg) :> TypeProviderForNamespaces),
                 [| box x.Sources
@@ -217,7 +224,8 @@ type TypeProviderInstantiation =
                   ResolutionFolder = ""
                   EmbeddedResource = "" 
                   InferTypesFromValues = args.[5] |> bool.Parse
-                  Schema = args.[6] }
+                  Schema = args.[6]
+                  InferenceMode = InferenceMode.BackwardCompatible }
         | "Json" ->
             Json { Sample = args.[1]
                    SampleIsList = args.[2] |> bool.Parse
@@ -227,7 +235,8 @@ type TypeProviderInstantiation =
                    ResolutionFolder = ""
                    EmbeddedResource = ""
                    InferTypesFromValues = args.[5] |> bool.Parse
-                   PreferDictionaries = args.[6] |> bool.Parse }
+                   PreferDictionaries = args.[6] |> bool.Parse
+                   InferenceMode = InferenceMode.BackwardCompatible }
         | "Html" ->
             Html { Sample = args.[1]
                    PreferOptionals = args.[2] |> bool.Parse
@@ -236,7 +245,8 @@ type TypeProviderInstantiation =
                    Culture = args.[4]
                    Encoding = ""
                    ResolutionFolder = ""
-                   EmbeddedResource = "" }
+                   EmbeddedResource = ""
+                   InferenceMode = InferenceMode.InferTypesFromValuesOnly }
         | "WorldBank" ->
             WorldBank { Sources = args.[1]
                         Asynchronous = args.[2] |> bool.Parse }

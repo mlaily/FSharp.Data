@@ -8,13 +8,15 @@ open FSharp.Data
 open FSharp.Data.Runtime
 open FSharp.Data.HtmlDocument
 open FSharp.Data.HtmlNode
+open FSharp.Data.Runtime.StructuralTypes
 
 let getTables includeLayoutTables =
     let parameters : HtmlInference.Parameters =
         { MissingValues = TextConversions.DefaultMissingValues
           CultureInfo = CultureInfo.InvariantCulture
           UnitsOfMeasureProvider = StructuralInference.defaultUnitsOfMeasureProvider
-          PreferOptionals = false }
+          PreferOptionals = false
+          InferenceMode = InferenceMode.InferTypesFromValuesOnly }
     HtmlRuntime.getTables (Some parameters) includeLayoutTables
 
 [<Test>]

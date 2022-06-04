@@ -459,6 +459,7 @@ let inferPrimitiveType (unitsOfMeasureProvider: IUnitsOfMeasureProvider) (infere
         | Parse asGuid _ -> makePrimitive typeof<Guid>
         | _ -> None
 
+    /// Parses values looking like "typeof<int> or typeof<int<metre>>" and returns the appropriate type.
     let matchInlineSchema value =
         match value with
         | "" -> Some InferedType.Null

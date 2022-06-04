@@ -47,7 +47,7 @@ let getInferedTypeFromValue unitsOfMeasureProvider inferenceMode cultureInfo (el
                 | JsonValue.Array _) as json ->
                     let jsonType =
                         json
-                    |> JsonInference.inferType unitsOfMeasureProvider inferenceMode cultureInfo element.Name.LocalName
+                        |> JsonInference.inferType unitsOfMeasureProvider inferenceMode cultureInfo element.Name.LocalName
 
                     InferedType.Json(jsonType, optional)
                 | _ -> typ
