@@ -8,6 +8,12 @@ open System.Globalization
 open FSharp.Data
 open FSharp.Data.Runtime
 open FSharp.Data.Runtime.StructuralTypes
+open System.Text.RegularExpressions
+
+let asOption =
+    function
+    | true, x -> Some x
+    | false, _ -> None
 
 /// <exclude />
 module internal List =
@@ -22,11 +28,6 @@ module internal List =
         let d1, d2 = dict vals1, dict vals2
         let k1, k2 = set d1.Keys, set d2.Keys
         let keys = List.map fst vals1 @ (List.ofSeq (k2 - k1))
-
-        let asOption =
-            function
-            | true, v -> Some v
-            | _ -> None
 
         [ for k in keys -> k, asOption (d1.TryGetValue(k)), asOption (d2.TryGetValue(k)) ]
 
@@ -319,10 +320,84 @@ let parseUnitOfMeasure (provider: IUnitsOfMeasureProvider) (str: string) =
         let unit = provider.SI str
         if unit = null then None else Some unit
 
+/// The schema may be set explicitly. This table specifies the mapping
+/// from the names that users can use to the types used.
+let private nameToType =
+    [ "int", (typeof<int>, TypeWrapper.None)
+      "int64", (typeof<int64>, TypeWrapper.None)
+      "bool", (typeof<bool>, TypeWrapper.None)
+      "float", (typeof<float>, TypeWrapper.None)
+      "decimal", (typeof<decimal>, TypeWrapper.None)
+      "date", (typeof<DateTime>, TypeWrapper.None)
+      "datetimeoffset", (typeof<DateTimeOffset>, TypeWrapper.None)
+      "timespan", (typeof<TimeSpan>, TypeWrapper.None)
+      "guid", (typeof<Guid>, TypeWrapper.None)
+      "string", (typeof<String>, TypeWrapper.None)
+      "int?", (typeof<int>, TypeWrapper.Nullable)
+      "int64?", (typeof<int64>, TypeWrapper.Nullable)
+      "bool?", (typeof<bool>, TypeWrapper.Nullable)
+      "float?", (typeof<float>, TypeWrapper.Nullable)
+      "decimal?", (typeof<decimal>, TypeWrapper.Nullable)
+      "date?", (typeof<DateTime>, TypeWrapper.Nullable)
+      "datetimeoffset?", (typeof<DateTimeOffset>, TypeWrapper.Nullable)
+      "timespan?", (typeof<TimeSpan>, TypeWrapper.Nullable)
+      "guid?", (typeof<Guid>, TypeWrapper.Nullable)
+      "int option", (typeof<int>, TypeWrapper.Option)
+      "int64 option", (typeof<int64>, TypeWrapper.Option)
+      "bool option", (typeof<bool>, TypeWrapper.Option)
+      "float option", (typeof<float>, TypeWrapper.Option)
+      "decimal option", (typeof<decimal>, TypeWrapper.Option)
+      "date option", (typeof<DateTime>, TypeWrapper.Option)
+      "datetimeoffset option", (typeof<DateTimeOffset>, TypeWrapper.Option)
+      "timespan option", (typeof<TimeSpan>, TypeWrapper.Option)
+      "guid option", (typeof<Guid>, TypeWrapper.Option)
+      "string option", (typeof<string>, TypeWrapper.Option) ]
+    |> dict
+
+let private typeAndUnitRegex =
+    lazy Regex(@"^(?<type>.+)<(?<unit>.+)>$", RegexOptions.Compiled ||| RegexOptions.RightToLeft)
+
+/// <summary>
+/// Parses type specification in the schema for a single value.
+/// This can be of the form: <c>type|measure|type&lt;measure&gt;</c>
+/// </summary>
+let parseTypeAndUnit unitsOfMeasureProvider str =
+    let m = typeAndUnitRegex.Value.Match(str)
+
+    if m.Success then
+        // type<unit> case, both type and unit have to be valid
+        let typ =
+            m.Groups.["type"].Value.TrimEnd().ToLowerInvariant()
+            |> nameToType.TryGetValue
+            |> asOption
+
+        match typ with
+        | None -> None, None
+        | Some typ ->
+            let unitName = m.Groups.["unit"].Value.Trim()
+            let unit = parseUnitOfMeasure unitsOfMeasureProvider unitName
+
+            if unit.IsNone then
+                failwithf "Invalid unit of measure %s" unitName
+            else
+                Some typ, unit
+    else
+        // it is not a full type with unit, so it can be either type or a unit
+        let typ =
+            str.ToLowerInvariant()
+            |> nameToType.TryGetValue
+            |> asOption
+
+        match typ with
+        | Some (typ, typWrapper) ->
+            // Just type
+            Some(typ, typWrapper), None
+        | None ->
+            // Just unit (or nothing)
+            None, parseUnitOfMeasure unitsOfMeasureProvider str
+
 [<AutoOpen>]
 module private Helpers =
-
-    open System.Text.RegularExpressions
 
     let wordRegex = lazy Regex("\\w+", RegexOptions.Compiled)
 
