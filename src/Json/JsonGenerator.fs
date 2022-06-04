@@ -32,15 +32,44 @@ type internal JsonGenerationContext =
       InferenceMode: InferenceMode
       UnitsOfMeasureProvider: IUnitsOfMeasureProvider }
 
-    static member Create(cultureStr, tpType, unitsOfMeasureProvider, inferenceMode, ?uniqueNiceName, ?typeCache, ?preferDictionaries) =
+    static member Create
+        (
+            cultureStr,
+            tpType,
+            unitsOfMeasureProvider,
+            inferenceMode,
+            ?uniqueNiceName,
+            ?typeCache,
+            ?preferDictionaries
+        ) =
         let uniqueNiceName =
             defaultArg uniqueNiceName (NameUtils.uniqueGenerator NameUtils.nicePascalName)
 
         let typeCache = defaultArg typeCache (Dictionary())
         let preferDictionaries = defaultArg preferDictionaries false
-        JsonGenerationContext.Create(cultureStr, tpType, uniqueNiceName, typeCache, preferDictionaries, true, inferenceMode, unitsOfMeasureProvider)
 
-    static member Create(cultureStr, tpType, uniqueNiceName, typeCache, preferDictionaries, generateConstructors, inferenceMode, unitsOfMeasureProvider) =
+        JsonGenerationContext.Create(
+            cultureStr,
+            tpType,
+            uniqueNiceName,
+            typeCache,
+            preferDictionaries,
+            true,
+            inferenceMode,
+            unitsOfMeasureProvider
+        )
+
+    static member Create
+        (
+            cultureStr,
+            tpType,
+            uniqueNiceName,
+            typeCache,
+            preferDictionaries,
+            generateConstructors,
+            inferenceMode,
+            unitsOfMeasureProvider
+        ) =
         { CultureStr = cultureStr
           TypeProviderType = tpType
           UniqueNiceName = uniqueNiceName

@@ -83,7 +83,11 @@ type public HtmlProvider(cfg: TypeProviderConfig) as this =
           ProvidedStaticParameter("Encoding", typeof<string>, parameterDefaultValue = "")
           ProvidedStaticParameter("ResolutionFolder", typeof<string>, parameterDefaultValue = "")
           ProvidedStaticParameter("EmbeddedResource", typeof<string>, parameterDefaultValue = "")
-          ProvidedStaticParameter("InferenceMode", typeof<InferenceMode>, parameterDefaultValue = InferenceMode.InferTypesFromValuesOnly) ]
+          ProvidedStaticParameter(
+              "InferenceMode",
+              typeof<InferenceMode>,
+              parameterDefaultValue = InferenceMode.InferTypesFromValuesOnly
+          ) ]
 
     let helpText =
         """<summary>Typed representation of an HTML file.</summary>

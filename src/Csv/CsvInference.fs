@@ -12,17 +12,16 @@ open FSharp.Data.Runtime.StructuralTypes
 /// This table specifies the mapping from the names that users can use to the types used.
 /// The CsvProvider uses the same mapping as the one used for inline schemas, extended with nullable types.
 let private nameToTypeWithNullables =
-    [ for KeyValue(k, v) in StructuralInference.nameToType -> k, v ]
-    @
-    [ "int?", (typeof<int>, TypeWrapper.Nullable)
-      "int64?", (typeof<int64>, TypeWrapper.Nullable)
-      "bool?", (typeof<bool>, TypeWrapper.Nullable)
-      "float?", (typeof<float>, TypeWrapper.Nullable)
-      "decimal?", (typeof<decimal>, TypeWrapper.Nullable)
-      "date?", (typeof<DateTime>, TypeWrapper.Nullable)
-      "datetimeoffset?", (typeof<DateTimeOffset>, TypeWrapper.Nullable)
-      "timespan?", (typeof<TimeSpan>, TypeWrapper.Nullable)
-      "guid?", (typeof<Guid>, TypeWrapper.Nullable) ]
+    [ for KeyValue (k, v) in StructuralInference.nameToType -> k, v ]
+    @ [ "int?", (typeof<int>, TypeWrapper.Nullable)
+        "int64?", (typeof<int64>, TypeWrapper.Nullable)
+        "bool?", (typeof<bool>, TypeWrapper.Nullable)
+        "float?", (typeof<float>, TypeWrapper.Nullable)
+        "decimal?", (typeof<decimal>, TypeWrapper.Nullable)
+        "date?", (typeof<DateTime>, TypeWrapper.Nullable)
+        "datetimeoffset?", (typeof<DateTimeOffset>, TypeWrapper.Nullable)
+        "timespan?", (typeof<TimeSpan>, TypeWrapper.Nullable)
+        "guid?", (typeof<Guid>, TypeWrapper.Nullable) ]
     |> dict
 
 let private nameAndTypeRegex =
@@ -49,7 +48,9 @@ type private SchemaParseResult =
 /// (if we succeed we override the inferred schema, otherwise, we just
 /// override the header name)
 let private parseSchemaItem unitsOfMeasureProvider str forSchemaOverride =
-    let parseTypeAndUnit = StructuralInference.parseTypeAndUnit unitsOfMeasureProvider nameToTypeWithNullables
+    let parseTypeAndUnit =
+        StructuralInference.parseTypeAndUnit unitsOfMeasureProvider nameToTypeWithNullables
+
     let name, typ, unit, isOverrideByName, originalName =
         let m = overrideByNameRegex.Value.Match str
 
@@ -97,7 +98,15 @@ let private parseSchemaItem unitsOfMeasureProvider str forSchemaOverride =
     | None, Some _ when forSchemaOverride -> SchemaParseResult.Name str
     | None, Some unit -> SchemaParseResult.NameAndUnit(name, unit)
 
-let internal inferCellType unitsOfMeasureProvider preferOptionals missingValues inferenceMode cultureInfo unit (value: string) =
+let internal inferCellType
+    unitsOfMeasureProvider
+    preferOptionals
+    missingValues
+    inferenceMode
+    cultureInfo
+    unit
+    (value: string)
+    =
     // Explicit missing values (NaN, NA, Empty string etc.) will be treated as float unless the preferOptionals is set to true
     if Array.exists (value.Trim() |> (=)) missingValues then
         if preferOptionals then
@@ -265,7 +274,15 @@ let internal inferType
                         let typ =
                             match schema with
                             | Some _ -> InferedType.Null // this will be ignored, so just return anything
-                            | None -> inferCellType unitsOfMeasureProvider preferOptionals missingValues inferenceMode cultureInfo unit value
+                            | None ->
+                                inferCellType
+                                    unitsOfMeasureProvider
+                                    preferOptionals
+                                    missingValues
+                                    inferenceMode
+                                    cultureInfo
+                                    unit
+                                    value
 
                         { Name = name; Type = typ } ]
 
@@ -307,9 +324,12 @@ let internal getFields preferOptionals inferedType schema =
             | None ->
                 let schemaCompleteDefinition, schemaName =
                     let split = field.Name.Split('\n')
-                    if split.Length > 1
-                    then split.[0], split.[1]
-                    else field.Name, field.Name
+
+                    if split.Length > 1 then
+                        split.[0], split.[1]
+                    else
+                        field.Name, field.Name
+
                 match field.Type with
                 | InferedType.Primitive (typ, unit, optional) ->
 
@@ -344,8 +364,7 @@ let internal getFields preferOptionals inferedType schema =
 
                     PrimitiveInferedProperty.Create(name, typ, typWrapper, unit)
 
-                | _ ->
-                    PrimitiveInferedProperty.Create(schemaCompleteDefinition, typeof<string>, preferOptionals, None))
+                | _ -> PrimitiveInferedProperty.Create(schemaCompleteDefinition, typeof<string>, preferOptionals, None))
 
     | _ -> failwithf "inferFields: Expected record type, got %A" inferedType
 

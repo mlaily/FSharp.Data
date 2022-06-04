@@ -202,7 +202,8 @@ type TypeWrapper =
     | Option
     /// The type T will be converter to type Nullable<T>
     | Nullable
-    static member FromOption optional = if optional then TypeWrapper.Option else TypeWrapper.None
+    static member FromOption optional =
+        if optional then TypeWrapper.Option else TypeWrapper.None
 
 /// Represents type information about a primitive value (used mainly in the CSV provider)
 /// This type captures the type, unit of measure and handling of missing values (if we
@@ -220,6 +221,7 @@ type PrimitiveInferedValue =
                 typeof<int>
             else
                 typ
+
         { InferedType = typ
           RuntimeType = runtimeTyp
           UnitOfMeasure = unit

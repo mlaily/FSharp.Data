@@ -352,9 +352,13 @@ let private typeAndUnitRegex =
 /// Matches a value of the form "typeof<value>" where the nested value is of the form "type<unit>" or just "type".
 /// ({} instead of <> is allowed so it can be used in xml)
 let private validInlineSchema =
-    lazy Regex(@"^typeof(<|{)"
-             + @"(?<typeDefinition>(?<typeOrUnit>[^<>{}]+)|(?<typeAndUnit>[^<>{}]+(<|{)[^<>{}]+(>|})))"
-             + @"(>|})$", RegexOptions.Compiled)
+    lazy
+        Regex(
+            @"^typeof(<|{)"
+            + @"(?<typeDefinition>(?<typeOrUnit>[^<>{}]+)|(?<typeAndUnit>[^<>{}]+(<|{)[^<>{}]+(>|})))"
+            + @"(>|})$",
+            RegexOptions.Compiled
+        )
 
 /// <summary>
 /// Parses type specification in the schema for a single value.
@@ -412,7 +416,13 @@ module private Helpers =
 /// with the desiredUnit applied,
 /// or a value parsed from an inline schema.
 /// (For inline schemas, the unit parsed from the schema takes precedence over desiredUnit when present)
-let inferPrimitiveType (unitsOfMeasureProvider: IUnitsOfMeasureProvider) (inferenceMode: InferenceMode) (cultureInfo: CultureInfo) (value: string) (desiredUnit: Type option) =
+let inferPrimitiveType
+    (unitsOfMeasureProvider: IUnitsOfMeasureProvider)
+    (inferenceMode: InferenceMode)
+    (cultureInfo: CultureInfo)
+    (value: string)
+    (desiredUnit: Type option)
+    =
 
     // Helper for calling TextConversions.AsXyz functions
     let (|Parse|_|) func value = func cultureInfo value
@@ -442,7 +452,9 @@ let inferPrimitiveType (unitsOfMeasureProvider: IUnitsOfMeasureProvider) (infere
                >= 0)
 
     let matchValue value =
-        let makePrimitive typ = Some (InferedType.Primitive(typ, desiredUnit, false))
+        let makePrimitive typ =
+            Some(InferedType.Primitive(typ, desiredUnit, false))
+
         match value with
         | "" -> Some InferedType.Null
         | Parse TextConversions.AsInteger 0 -> makePrimitive typeof<Bit0>
@@ -466,20 +478,21 @@ let inferPrimitiveType (unitsOfMeasureProvider: IUnitsOfMeasureProvider) (infere
         | nonEmptyValue ->
             // Validates that it looks like an inline schema before trying to extract the type and unit:
             let m = validInlineSchema.Value.Match(nonEmptyValue)
+
             match m.Success with
             | false -> None
             | true ->
-                let typ, unit = parseTypeAndUnit unitsOfMeasureProvider nameToType m.Groups.["typeDefinition"].Value
-                let unit =
-                    if unit.IsNone
-                    then desiredUnit
-                    else unit
+                let typ, unit =
+                    parseTypeAndUnit unitsOfMeasureProvider nameToType m.Groups.["typeDefinition"].Value
+
+                let unit = if unit.IsNone then desiredUnit else unit
+
                 match typ, unit with
                 | None, _ -> None
                 | Some (typ, typeWrapper), unit ->
                     match typeWrapper with
-                    | TypeWrapper.None -> Some (InferedType.Primitive(typ, unit, false))
-                    | TypeWrapper.Option -> Some (InferedType.Primitive(typ, unit, true))
+                    | TypeWrapper.None -> Some(InferedType.Primitive(typ, unit, false))
+                    | TypeWrapper.Option -> Some(InferedType.Primitive(typ, unit, true))
                     | TypeWrapper.Nullable -> failwith "Nullable types are not allowed in inline schemas."
 
     let fallbackType = InferedType.Primitive(typeof<string>, None, false)
