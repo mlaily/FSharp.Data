@@ -354,12 +354,21 @@ let private nameToType =
       "string option", (typeof<string>, TypeWrapper.Option) ]
     |> dict
 
+// type<unit} or type{unit> is valid while it shouldn't, but well...
 let private typeAndUnitRegex =
-    lazy Regex(@"^(?<type>.+)<(?<unit>.+)>$", RegexOptions.Compiled ||| RegexOptions.RightToLeft)
+    lazy Regex(@"^(?<type>.+)(<|{)(?<unit>.+)(>|})$", RegexOptions.Compiled ||| RegexOptions.RightToLeft)
+
+/// Matches a value of the form "typeof<value>" where the nested value is of the form "type<unit>" or just "type".
+/// ({} instead of <> is allowed so it can be used in xml)
+let private validInlineSchema =
+    lazy Regex(@"^typeof(<|{)"
+             + @"(?<typeDefinition>(?<typeOrUnit>[^<>{}]+)|(?<typeAndUnit>[^<>{}]+(<|{)[^<>{}]+(>|})))"
+             + @"(>|})$", RegexOptions.Compiled)
 
 /// <summary>
 /// Parses type specification in the schema for a single value.
 /// This can be of the form: <c>type|measure|type&lt;measure&gt;</c>
+/// type{measure} is also supported to ease definition in xml values.
 /// </summary>
 let parseTypeAndUnit unitsOfMeasureProvider str =
     let m = typeAndUnitRegex.Value.Match(str)
@@ -407,7 +416,7 @@ module private Helpers =
         |> Seq.choose (fun (x: Match) -> TextConversions.AsInteger CultureInfo.InvariantCulture x.Value)
         |> Seq.length
 
-/// Infers the type of a simple string value
+/// Infers the type of a string value
 /// Returns one of null|typeof<Bit0>|typeof<Bit1>|typeof<bool>|typeof<int>|typeof<int64>|typeof<decimal>|typeof<float>|typeof<Guid>|typeof<DateTime>|typeof<TimeSpan>|typeof<string>
 let inferPrimitiveType (inferenceMode: InferenceMode) (cultureInfo: CultureInfo) (value: string) =
 
@@ -458,16 +467,37 @@ let inferPrimitiveType (inferenceMode: InferenceMode) (cultureInfo: CultureInfo)
     let matchInlineSchema value =
         match value with
         | "" -> Some null
-        | "date" -> Some typeof<DateTime>
-        | "int" -> Some typeof<int>
-        | "float" -> Some typeof<float>
-        | _ -> None
+        | nonEmptyValue ->
+            // Note: units of measure are currently not supported here.
+            // We have all the required information for them, we "just" need to propagate the information up.
+            // Since all the machinery to generate UoM types requires the type provider helpers and conversion generators,
+            // supporting UoM here would probably requires us to return an abstraction (PrimitiveInferedValue?)
+            // instead of directly returning a type like we currently do...
+            let uomProvier = defaultUnitsOfMeasureProvider
+            // Validates that it looks like an inline schema before trying to extract the type and unit:
+            let m = validInlineSchema.Value.Match(nonEmptyValue)
+            match m.Success with
+            | false -> None
+            | true ->
+                let typ, unit = parseTypeAndUnit uomProvier m.Groups.["typeDefinition"].Value
+                match typ, unit with
+                | None, _ -> None
+                | Some (typ, typeWrapper), unit ->
+                    let inferedValue = PrimitiveInferedValue.Create(typ, typeWrapper, unit)
+                    match inferedValue.TypeWrapper with
+                    | TypeWrapper.None -> Some inferedValue.RuntimeType
+                    | TypeWrapper.Option -> Some (typedefof<option<_>>.MakeGenericType inferedValue.RuntimeType)
+                    | TypeWrapper.Nullable -> Some (typedefof<Nullable<_>>.MakeGenericType inferedValue.RuntimeType)
 
     let fallbackType = typeof<string>
 
     match inferenceMode with
-    | InferenceMode.InferTypesFromValuesOnly -> matchValue value |> Option.defaultValue fallbackType
-    | InferenceMode.InferTypesFromInlineSchemasOnly -> matchInlineSchema value |> Option.defaultValue fallbackType
+    | InferenceMode.InferTypesFromValuesOnly ->
+        matchValue value
+        |> Option.defaultValue fallbackType
+    | InferenceMode.InferTypesFromInlineSchemasOnly ->
+        matchInlineSchema value
+        |> Option.defaultValue fallbackType
     | InferenceMode.InferTypesFromValuesAndInlineSchemas ->
         matchInlineSchema value
         |> Option.orElseWith (fun () -> matchValue value)
