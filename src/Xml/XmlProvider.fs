@@ -10,6 +10,7 @@ open ProviderImplementation.ProviderHelpers
 open FSharp.Data.Runtime
 open FSharp.Data.Runtime.BaseTypes
 open FSharp.Data.Runtime.StructuralTypes
+open FSharp.Data.Runtime.StructuralInference
 
 // ----------------------------------------------------------------------------------------------
 
@@ -49,15 +50,7 @@ type public XmlProvider(cfg: TypeProviderConfig) as this =
         let inferenceMode = args.[9] :?> InferenceMode
 
         let inferenceMode =
-            // If the user sets InferenceMode manually (to a value other than BackwardCompatible)
-            // then the legacy InferTypesFromValues is ignored.
-            // Otherwise (when set to BackwardCompatible), override InferenceMode to a compatible value:
-            if inferenceMode = InferenceMode.BackwardCompatible then
-                match inferTypesFromValues with
-                | true -> InferenceMode.InferTypesFromValuesOnly
-                | false -> InferenceMode.NoInference
-            else
-                inferenceMode
+            InferenceMode'.FromPublicApi(inferenceMode, inferTypesFromValues)
 
         if schema <> "" then
             if sample <> "" then

@@ -14,7 +14,7 @@ open FSharp.Data.Runtime
 open FSharp.Data.Runtime.CsvInference
 open ProviderImplementation
 open ProviderImplementation.QuotationBuilder
-open FSharp.Data.Runtime.StructuralTypes
+open FSharp.Data.Runtime.StructuralInference
 
 // --------------------------------------------------------------------------------------
 
@@ -54,7 +54,7 @@ type public CsvProvider(cfg: TypeProviderConfig) as this =
         let resource = args.[15] :?> string
 
         // This provider already has a schema mechanism, so let's disable inline schemas.
-        let inferenceMode = InferenceMode.InferTypesFromValuesOnly
+        let inferenceMode = InferenceMode'.InferTypesFromValuesOnly
 
         let unitsOfMeasureProvider = ProviderHelpers.unitsOfMeasureProvider
 

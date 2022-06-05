@@ -11,6 +11,7 @@ open FSharp.Data
 open FSharp.Data.Runtime
 open FSharp.Data.Runtime.BaseTypes
 open FSharp.Data.Runtime.StructuralTypes
+open FSharp.Data.Runtime.StructuralInference
 
 #nowarn "10001"
 
@@ -41,6 +42,8 @@ type public HtmlProvider(cfg: TypeProviderConfig) as this =
         let resolutionFolder = args.[6] :?> string
         let resource = args.[7] :?> string
         let inferenceMode = args.[8] :?> InferenceMode
+
+        let inferenceMode = InferenceMode'.FromPublicApi(inferenceMode)
 
         let getSpec _ value =
 

@@ -242,14 +242,3 @@ type PrimitiveInferedProperty =
 
     static member Create(name, typ, optional, unit) =
         PrimitiveInferedProperty.Create(name, typ, TypeWrapper.FromOption optional, unit)
-
-type InferenceMode =
-    /// Used as a default value for backward compatibility with the legacy InferTypesFromValues boolean static parameter.
-    /// The actual behaviour will depend on whether InferTypesFromValues is set to true (default) or false.
-    | BackwardCompatible = 0
-    /// Type everything as strings
-    /// (or the most basic type possible for the value when it's not string, e.g. for json numbers or booleans).
-    | NoInference = 1
-    | InferTypesFromValuesOnly = 2
-    | InferTypesFromValuesAndInlineSchemas = 3
-    | InferTypesFromInlineSchemasOnly = 4

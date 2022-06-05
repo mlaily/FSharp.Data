@@ -8,6 +8,7 @@ open System
 open FSharp.Data
 open FSharp.Data.Runtime
 open FSharp.Data.Runtime.StructuralTypes
+open FSharp.Data.Runtime.StructuralInference
 
 /// Infer type of a JSON value - this is a simple function because most of the
 /// functionality is handled in `StructureInference` (most notably, by
@@ -21,11 +22,10 @@ let rec inferType unitsOfMeasureProvider inferenceMode cultureInfo parentName js
 
     let shouldInferNonStringFromValue =
         match inferenceMode with
-        | InferenceMode.InferTypesFromValuesOnly -> true
-        | InferenceMode.NoInference -> false
-        | InferenceMode.InferTypesFromInlineSchemasOnly -> false
-        | InferenceMode.InferTypesFromValuesAndInlineSchemas -> true
-        | _ -> failwithf "Unexpected enum value %A" inferenceMode
+        | InferenceMode'.InferTypesFromValuesOnly -> true
+        | InferenceMode'.NoInference -> false
+        | InferenceMode'.InferTypesFromInlineSchemasOnly -> false
+        | InferenceMode'.InferTypesFromValuesAndInlineSchemas -> true
 
     match json with
     // Null and primitives without subtyping hierarchies

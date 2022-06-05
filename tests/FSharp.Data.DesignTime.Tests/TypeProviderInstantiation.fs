@@ -7,6 +7,7 @@ open ProviderImplementation.ProvidedTypes
 open ProviderImplementation.ProvidedTypesTesting
 open FSharp.Data.Runtime
 open FSharp.Data.Runtime.StructuralTypes
+open FSharp.Data.Runtime.StructuralInference
 
 type CsvProviderArgs =
     { Sample : string

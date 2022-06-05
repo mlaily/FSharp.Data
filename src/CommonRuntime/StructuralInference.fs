@@ -10,6 +10,42 @@ open FSharp.Data.Runtime
 open FSharp.Data.Runtime.StructuralTypes
 open System.Text.RegularExpressions
 
+/// This is the public inference mode enum with backward compatibility.
+type InferenceMode =
+    /// Used as a default value for backward compatibility with the legacy InferTypesFromValues boolean static parameter.
+    /// The actual behaviour will depend on whether InferTypesFromValues is set to true (default) or false.
+    | BackwardCompatible = 0
+    /// Type everything as strings
+    /// (or the most basic type possible for the value when it's not string, e.g. for json numbers or booleans).
+    | NoInference = 1
+    | InferTypesFromValuesOnly = 2
+    | InferTypesFromValuesAndInlineSchemas = 3
+    | InferTypesFromInlineSchemasOnly = 4
+
+/// This is the internal DU representing all the valid cases we support, mapped from the public InferenceMode.
+type InferenceMode' =
+    | NoInference
+    | InferTypesFromValuesOnly
+    | InferTypesFromValuesAndInlineSchemas
+    | InferTypesFromInlineSchemasOnly
+    /// Converts from the public api enum with backward compat to the internal representation with only valid cases.
+    /// If the user sets InferenceMode manually (to a value other than BackwardCompatible)
+    /// then the legacy InferTypesFromValues is ignored.
+    /// Otherwise (when set to BackwardCompatible), inference mode is set to a compatible value.
+    static member FromPublicApi(inferenceMode: InferenceMode, ?legacyInferTypesFromValues: bool) =
+        match inferenceMode with
+        | InferenceMode.BackwardCompatible ->
+            let legacyInferTypesFromValues = defaultArg legacyInferTypesFromValues true
+
+            match legacyInferTypesFromValues with
+            | true -> InferenceMode'.InferTypesFromValuesOnly
+            | false -> InferenceMode'.NoInference
+        | InferenceMode.NoInference -> InferenceMode'.NoInference
+        | InferenceMode.InferTypesFromValuesOnly -> InferenceMode'.InferTypesFromValuesOnly
+        | InferenceMode.InferTypesFromValuesAndInlineSchemas -> InferenceMode'.InferTypesFromValuesAndInlineSchemas
+        | InferenceMode.InferTypesFromInlineSchemasOnly -> InferenceMode'.InferTypesFromInlineSchemasOnly
+        | _ -> failwithf "Unexpected inference mode value %A" inferenceMode
+
 let asOption =
     function
     | true, x -> Some x
@@ -418,7 +454,7 @@ module private Helpers =
 /// (For inline schemas, the unit parsed from the schema takes precedence over desiredUnit when present)
 let inferPrimitiveType
     (unitsOfMeasureProvider: IUnitsOfMeasureProvider)
-    (inferenceMode: InferenceMode)
+    (inferenceMode: InferenceMode')
     (cultureInfo: CultureInfo)
     (value: string)
     (desiredUnit: Type option)
@@ -498,20 +534,18 @@ let inferPrimitiveType
     let fallbackType = InferedType.Primitive(typeof<string>, None, false)
 
     match inferenceMode with
-    | InferenceMode.InferTypesFromValuesOnly ->
+    | InferenceMode'.NoInference -> fallbackType
+    | InferenceMode'.InferTypesFromValuesOnly ->
         matchValue value
         |> Option.defaultValue fallbackType
-    | InferenceMode.InferTypesFromInlineSchemasOnly ->
+    | InferenceMode'.InferTypesFromInlineSchemasOnly ->
         matchInlineSchema value
         |> Option.defaultValue fallbackType
-    | InferenceMode.InferTypesFromValuesAndInlineSchemas ->
+    | InferenceMode'.InferTypesFromValuesAndInlineSchemas ->
         matchInlineSchema value
         |> Option.orElseWith (fun () -> matchValue value)
         |> Option.defaultValue fallbackType
-    | _ -> failwith (sprintf "Unexpected inference mode value: %A" inferenceMode)
 
 /// Infers the type of a simple string value
 let getInferedTypeFromString unitsOfMeasureProvider inferenceMode cultureInfo value unit =
-    match inferenceMode with
-    | InferenceMode.NoInference -> InferedType.Primitive(typeof<string>, None, false)
-    | _ -> inferPrimitiveType unitsOfMeasureProvider inferenceMode cultureInfo value unit
+    inferPrimitiveType unitsOfMeasureProvider inferenceMode cultureInfo value unit

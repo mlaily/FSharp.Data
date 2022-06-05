@@ -29,7 +29,7 @@ type internal JsonGenerationContext =
       TypeCache: Dictionary<InferedType, ProvidedTypeDefinition>
       PreferDictionaries: bool
       GenerateConstructors: bool
-      InferenceMode: InferenceMode
+      InferenceMode: InferenceMode'
       UnitsOfMeasureProvider: IUnitsOfMeasureProvider }
 
     static member Create

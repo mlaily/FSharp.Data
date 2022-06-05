@@ -12,7 +12,7 @@ type Parameters =
       CultureInfo: CultureInfo
       UnitsOfMeasureProvider: IUnitsOfMeasureProvider
       PreferOptionals: bool
-      InferenceMode: InferenceMode }
+      InferenceMode: InferenceMode' }
 
 let inferColumns parameters (headerNamesAndUnits: _[]) rows =
 

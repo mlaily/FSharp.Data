@@ -23,7 +23,7 @@ open FSharp.Data.Runtime.StructuralInference
 type internal XmlGenerationContext =
     { CultureStr: string
       UnitsOfMeasureProvider: IUnitsOfMeasureProvider
-      InferenceMode: InferenceMode
+      InferenceMode: InferenceMode'
       ProvidedType: ProvidedTypeDefinition
       // to nameclash type names
       UniqueNiceName: string -> string
