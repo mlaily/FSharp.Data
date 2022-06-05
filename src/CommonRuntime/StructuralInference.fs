@@ -18,14 +18,20 @@ type InferenceMode =
     /// Type everything as strings
     /// (or the most basic type possible for the value when it's not string, e.g. for json numbers or booleans).
     | NoInference = 1
-    | InferTypesFromValuesOnly = 2
-    | InferTypesFromValuesAndInlineSchemas = 3
+    /// Infer types from values only. Inline schemas are disabled.
+    | ValuesOnly = 2
+    /// Inline schemas types have the same weight as value infered types.
+    | ValuesAndInlineSchemasHints = 3
+    /// Inline schemas types override value infered types. (Value infered types are ignored if an inline schema is present)
+    | ValuesAndInlineSchemasOverrides = 4
 
 /// This is the internal DU representing all the valid cases we support, mapped from the public InferenceMode.
 type InferenceMode' =
     | NoInference
-    | InferTypesFromValuesOnly
-    | InferTypesFromValuesAndInlineSchemas
+    /// Backward compatible mode.
+    | ValuesOnly
+    | ValuesAndInlineSchemasHints
+    | ValuesAndInlineSchemasOverrides
     /// Converts from the public api enum with backward compat to the internal representation with only valid cases.
     /// If the user sets InferenceMode manually (to a value other than BackwardCompatible)
     /// then the legacy InferTypesFromValues is ignored.
@@ -36,11 +42,12 @@ type InferenceMode' =
             let legacyInferTypesFromValues = defaultArg legacyInferTypesFromValues true
 
             match legacyInferTypesFromValues with
-            | true -> InferenceMode'.InferTypesFromValuesOnly
+            | true -> InferenceMode'.ValuesOnly
             | false -> InferenceMode'.NoInference
         | InferenceMode.NoInference -> InferenceMode'.NoInference
-        | InferenceMode.InferTypesFromValuesOnly -> InferenceMode'.InferTypesFromValuesOnly
-        | InferenceMode.InferTypesFromValuesAndInlineSchemas -> InferenceMode'.InferTypesFromValuesAndInlineSchemas
+        | InferenceMode.ValuesOnly -> InferenceMode'.ValuesOnly
+        | InferenceMode.ValuesAndInlineSchemasHints -> InferenceMode'.ValuesAndInlineSchemasHints
+        | InferenceMode.ValuesAndInlineSchemasOverrides -> InferenceMode'.ValuesAndInlineSchemasOverrides
         | _ -> failwithf "Unexpected inference mode value %A" inferenceMode
 
 let asOption =
@@ -533,7 +540,7 @@ let inferPrimitiveType
         | _ -> None
 
     /// Parses values looking like "typeof<int> or typeof<int<metre>>" and returns the appropriate type.
-    let matchInlineSchema value =
+    let matchInlineSchema useInlineSchemasOverrides value =
         match value with
         | "" -> Some InferedType.Null
         | nonEmptyValue ->
@@ -552,7 +559,7 @@ let inferPrimitiveType
                 | None, _ -> None
                 | Some (typ, typeWrapper), unit ->
                     match typeWrapper with
-                    | TypeWrapper.None -> Some(InferedType.Primitive(typ, unit, false, true))
+                    | TypeWrapper.None -> Some(InferedType.Primitive(typ, unit, false, useInlineSchemasOverrides))
                     // To keep it simple and prevent weird situations (and preserve backward compat),
                     // only structural inference can create optional types.
                     // Optional types in inline schemas are not allowed.
@@ -563,11 +570,15 @@ let inferPrimitiveType
 
     match inferenceMode with
     | InferenceMode'.NoInference -> fallbackType
-    | InferenceMode'.InferTypesFromValuesOnly ->
+    | InferenceMode'.ValuesOnly ->
         matchValue value
         |> Option.defaultValue fallbackType
-    | InferenceMode'.InferTypesFromValuesAndInlineSchemas ->
-        matchInlineSchema value
+    | InferenceMode'.ValuesAndInlineSchemasHints ->
+        matchInlineSchema false value
+        |> Option.orElseWith (fun () -> matchValue value)
+        |> Option.defaultValue fallbackType
+    | InferenceMode'.ValuesAndInlineSchemasOverrides ->
+        matchInlineSchema true value
         |> Option.orElseWith (fun () -> matchValue value)
         |> Option.defaultValue fallbackType
 

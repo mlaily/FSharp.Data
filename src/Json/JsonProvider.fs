@@ -137,11 +137,12 @@ type public JsonProvider(cfg: TypeProviderConfig) as this =
               This parameter is deprecated. Please use InferenceMode instead.
               If true, turns on additional type inference from values. 
               (e.g. type inference infers string values such as "123" as ints and values constrained to 0 and 1 as booleans.)</param>
-           <param name='PreferDictionaries'>If true, json records are interpreted as dictionaries when the names of all the fields are infered (by type inference rules) into the same non-string primitive type.</param>
+           <param name='PreferDictionaries'>If true, json records are interpreted as dictionaries when the names of all the fields are inferred (by type inference rules) into the same non-string primitive type.</param>
            <param name='InferenceMode'>Possible values:
-              | InferTypesFromValuesOnly -> Types of values are infered from the Sample. Inline schema support is disabled. This is the default.
-              | NoInference -> Inference is disabled. All values are infered as the most basic type permitted for the value (i.e. string or number or bool).
-              | InferTypesFromValuesAndInlineSchemas -> Types of values are infered from both values and inline schemas. Inline schemas are special string values that can define a type and/or unit of measure. Supported syntax: typeof&lt;type&gt; or typeof{type} or typeof&lt;type&lt;measure&gt;&gt; or typeof{type{measure}}. Valid measures are the default SI units, and valid types are <c>int</c>, <c>int64</c>, <c>bool</c>, <c>float</c>, <c>decimal</c>, <c>date</c>, <c>datetimeoffset</c>, <c>timespan</c>, <c>guid</c>, <c>string</c>, <c>int option</c>, <c>int64 option</c>, <c>bool option</c>, <c>float option</c>, <c>decimal option</c>, <c>date option</c>, <c>datetimeoffset option</c>, <c>timespan option</c>, <c>guid option</c> and <c>string option</c>.
+              | NoInference -> Inference is disabled. All values are inferred as the most basic type permitted for the value (i.e. string or number or bool).
+              | ValuesOnly -> Types of values are inferred from the Sample. Inline schema support is disabled. This is the default.
+              | ValuesAndInlineSchemasHints -> Types of values are inferred from both values and inline schemas. Inline schemas are special string values that can define a type and/or unit of measure. Supported syntax: typeof&lt;type&gt; or typeof{type} or typeof&lt;type&lt;measure&gt;&gt; or typeof{type{measure}}. Valid measures are the default SI units, and valid types are <c>int</c>, <c>int64</c>, <c>bool</c>, <c>float</c>, <c>decimal</c>, <c>date</c>, <c>datetimeoffset</c>, <c>timespan</c>, <c>guid</c> and <c>string</c>.
+              | ValuesAndInlineSchemasOverrides -> Same as ValuesAndInlineSchemasHints, but value inferred types are ignored when an inline schema is present.
            </param>"""
 
     do jsonProvTy.AddXmlDoc helpText

@@ -16,7 +16,7 @@ let getTables includeLayoutTables =
           CultureInfo = CultureInfo.InvariantCulture
           UnitsOfMeasureProvider = StructuralInference.defaultUnitsOfMeasureProvider
           PreferOptionals = false
-          InferenceMode = StructuralInference.InferenceMode'.InferTypesFromValuesOnly }
+          InferenceMode = StructuralInference.InferenceMode'.ValuesOnly }
     HtmlRuntime.getTables (Some parameters) includeLayoutTables
 
 [<Test>]

@@ -634,7 +634,7 @@ let ``Parses timespan less than min as string`` () =
 [<Test>]
 let ``InferColumnTypes shall infer empty string as Double``() =
   let csv = CsvFile.Load(Path.Combine(__SOURCE_DIRECTORY__, "Data/emptyMissingValue.csv"))
-  let types = csv.InferColumnTypes(2,[|""|], StructuralInference.InferenceMode'.InferTypesFromValuesOnly, System.Globalization.CultureInfo.GetCultureInfo(""), null, false, false, StructuralInference.defaultUnitsOfMeasureProvider)
+  let types = csv.InferColumnTypes(2,[|""|], StructuralInference.InferenceMode'.ValuesOnly, System.Globalization.CultureInfo.GetCultureInfo(""), null, false, false, StructuralInference.defaultUnitsOfMeasureProvider)
   let expected = "Double"
   let actual = types.[3].Value.InferedType.Name
   actual |> should equal expected

@@ -33,7 +33,7 @@ let getInferedTypeFromValue unitsOfMeasureProvider inferenceMode cultureInfo (el
         getInferedTypeFromString unitsOfMeasureProvider inferenceMode cultureInfo (element.Value) None
 
     match inferenceMode with
-    // For backward compat, embedded json is not parsed when InferenceMode is NoInference
+    // Embedded json is not parsed when InferenceMode is NoInference
     | InferenceMode'.NoInference -> typ
     | _ ->
         match typ with

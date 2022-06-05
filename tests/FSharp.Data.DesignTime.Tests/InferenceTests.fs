@@ -16,7 +16,7 @@ let SimpleCollection typ =
   InferedType.Collection([ typeTag typ], Map.ofSeq [typeTag typ, (InferedMultiplicity.Multiple, typ)])
 
 let culture = TextRuntime.GetCulture ""
-let inferenceMode = InferenceMode'.InferTypesFromValuesOnly
+let inferenceMode = InferenceMode'.ValuesOnly
 let unitsOfMeasureProvider = ProviderHelpers.unitsOfMeasureProvider
 
 let inferType (csv:CsvFile) inferRows missingValues cultureInfo schema assumeMissingValues preferOptionals =

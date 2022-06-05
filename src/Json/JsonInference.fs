@@ -23,8 +23,9 @@ let rec inferType unitsOfMeasureProvider inferenceMode cultureInfo parentName js
     let shouldInferNonStringFromValue =
         match inferenceMode with
         | InferenceMode'.NoInference -> false
-        | InferenceMode'.InferTypesFromValuesOnly -> true
-        | InferenceMode'.InferTypesFromValuesAndInlineSchemas -> true
+        | InferenceMode'.ValuesOnly -> true
+        | InferenceMode'.ValuesAndInlineSchemasHints -> true
+        | InferenceMode'.ValuesAndInlineSchemasOverrides -> true
 
     match json with
     // Null and primitives without subtyping hierarchies

@@ -70,7 +70,7 @@ type JsonAnonymizer(?propertiesToSkip, ?valuesToSkip) =
 
   let isType testType typ =
     match typ with
-    | Runtime.StructuralTypes.InferedType.Primitive (typ, unit, optional) -> typ = testType
+    | Runtime.StructuralTypes.InferedType.Primitive (typ, _, _, _) -> typ = testType
     | _ -> false
 
   let rec anonymize json =
@@ -80,7 +80,7 @@ type JsonAnonymizer(?propertiesToSkip, ?valuesToSkip) =
           let typ =
             Runtime.StructuralInference.inferPrimitiveType
               Runtime.StructuralInference.defaultUnitsOfMeasureProvider
-              Runtime.StructuralInference.InferenceMode'.InferTypesFromValuesOnly
+              Runtime.StructuralInference.InferenceMode'.ValuesOnly
               CultureInfo.InvariantCulture s None
 
           ( if typ |> isType typeof<Guid> then Guid.NewGuid().ToString()
@@ -100,7 +100,7 @@ type JsonAnonymizer(?propertiesToSkip, ?valuesToSkip) =
           let typ =
             Runtime.StructuralInference.inferPrimitiveType
               Runtime.StructuralInference.defaultUnitsOfMeasureProvider
-              Runtime.StructuralInference.InferenceMode'.InferTypesFromValuesOnly
+              Runtime.StructuralInference.InferenceMode'.ValuesOnly
               CultureInfo.InvariantCulture (d.ToString()) None
           if typ |> isType typeof<Runtime.StructuralTypes.Bit0> ||
             typ |> isType typeof<Runtime.StructuralTypes.Bit1> then json

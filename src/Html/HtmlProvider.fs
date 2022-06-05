@@ -44,7 +44,7 @@ type public HtmlProvider(cfg: TypeProviderConfig) as this =
 
         // Allowing inline schemas does not seem very valuable for this provider.
         // Let's stick to the default values for now.
-        let inferenceMode = InferenceMode'.InferTypesFromValuesOnly
+        let inferenceMode = InferenceMode'.ValuesOnly
 
         let getSpec _ value =
 
