@@ -21,7 +21,17 @@ let private nameToTypeWithNullables =
         "date?", (typeof<DateTime>, TypeWrapper.Nullable)
         "datetimeoffset?", (typeof<DateTimeOffset>, TypeWrapper.Nullable)
         "timespan?", (typeof<TimeSpan>, TypeWrapper.Nullable)
-        "guid?", (typeof<Guid>, TypeWrapper.Nullable) ]
+        "guid?", (typeof<Guid>, TypeWrapper.Nullable)
+        "int option", (typeof<int>, TypeWrapper.Option)
+        "int64 option", (typeof<int64>, TypeWrapper.Option)
+        "bool option", (typeof<bool>, TypeWrapper.Option)
+        "float option", (typeof<float>, TypeWrapper.Option)
+        "decimal option", (typeof<decimal>, TypeWrapper.Option)
+        "date option", (typeof<DateTime>, TypeWrapper.Option)
+        "datetimeoffset option", (typeof<DateTimeOffset>, TypeWrapper.Option)
+        "timespan option", (typeof<TimeSpan>, TypeWrapper.Option)
+        "guid option", (typeof<Guid>, TypeWrapper.Option)
+        "string option", (typeof<string>, TypeWrapper.Option)]
     |> dict
 
 let private nameAndTypeRegex =
@@ -112,7 +122,7 @@ let internal inferCellType
         if preferOptionals then
             InferedType.Null
         else
-            InferedType.Primitive(typeof<float>, unit, false)
+            InferedType.Primitive(typeof<float>, unit, false, false)
     // If there's only whitespace between commas, treat it as a missing value and not as a string
     elif String.IsNullOrWhiteSpace value then
         InferedType.Null
@@ -331,7 +341,7 @@ let internal getFields preferOptionals inferedType schema =
                         field.Name, field.Name
 
                 match field.Type with
-                | InferedType.Primitive (typ, unit, optional) ->
+                | InferedType.Primitive (typ, unit, optional, _) ->
 
                     // Transform the types as described above
                     let typ, typWrapper =

@@ -132,10 +132,10 @@ module JsonTypeBuilder =
                           Type = normalize false inferedType })
                 // optional only affects the parent, so at top level always set to true regardless of the actual value
                 InferedType.Record(None, props, optional || topLevel)
-            | InferedType.Primitive (typ, unit, optional) when typ = typeof<Bit0> || typ = typeof<Bit1> ->
-                InferedType.Primitive(typeof<int>, unit, optional)
-            | InferedType.Primitive (typ, unit, optional) when typ = typeof<Bit> ->
-                InferedType.Primitive(typeof<bool>, unit, optional)
+            | InferedType.Primitive (typ, unit, optional, shouldOverrideOnMerge) when typ = typeof<Bit0> || typ = typeof<Bit1> ->
+                InferedType.Primitive(typeof<int>, unit, optional, shouldOverrideOnMerge)
+            | InferedType.Primitive (typ, unit, optional, shouldOverrideOnMerge) when typ = typeof<Bit> ->
+                InferedType.Primitive(typeof<bool>, unit, optional, shouldOverrideOnMerge)
             | x -> x
 
         let inferedType = normalize true inferedType
@@ -203,7 +203,7 @@ module JsonTypeBuilder =
                     | InferedMultiplicity.OptionalSingle
                     | InferedMultiplicity.Single ->
                         match inferedType with
-                        | InferedType.Primitive (typ, _, _) ->
+                        | InferedType.Primitive (typ, _, _, _) ->
                             if typ = typeof<int>
                                || typ = typeof<Bit0>
                                || typ = typeof<Bit1> then
@@ -331,7 +331,7 @@ module JsonTypeBuilder =
 
         match inferedType with
 
-        | InferedType.Primitive (inferedType, unit, optional) ->
+        | InferedType.Primitive (inferedType, unit, optional, _) ->
 
             let typ, conv, conversionCallingType =
                 PrimitiveInferedValue.Create(inferedType, optional, unit)
