@@ -20,14 +20,12 @@ type InferenceMode =
     | NoInference = 1
     | InferTypesFromValuesOnly = 2
     | InferTypesFromValuesAndInlineSchemas = 3
-    | InferTypesFromInlineSchemasOnly = 4
 
 /// This is the internal DU representing all the valid cases we support, mapped from the public InferenceMode.
 type InferenceMode' =
     | NoInference
     | InferTypesFromValuesOnly
     | InferTypesFromValuesAndInlineSchemas
-    | InferTypesFromInlineSchemasOnly
     /// Converts from the public api enum with backward compat to the internal representation with only valid cases.
     /// If the user sets InferenceMode manually (to a value other than BackwardCompatible)
     /// then the legacy InferTypesFromValues is ignored.
@@ -43,7 +41,6 @@ type InferenceMode' =
         | InferenceMode.NoInference -> InferenceMode'.NoInference
         | InferenceMode.InferTypesFromValuesOnly -> InferenceMode'.InferTypesFromValuesOnly
         | InferenceMode.InferTypesFromValuesAndInlineSchemas -> InferenceMode'.InferTypesFromValuesAndInlineSchemas
-        | InferenceMode.InferTypesFromInlineSchemasOnly -> InferenceMode'.InferTypesFromInlineSchemasOnly
         | _ -> failwithf "Unexpected inference mode value %A" inferenceMode
 
 let asOption =
@@ -419,7 +416,7 @@ let private validInlineSchema =
     lazy
         Regex(
             @"^typeof(<|{)"
-            + @"(?<typeDefinition>(?<typeOrUnit>[^<>{}]+)|(?<typeAndUnit>[^<>{}]+(<|{)[^<>{}]+(>|})))"
+            + @"(?<typeDefinition>(?<typeOrUnit>[^<>{}\s]+)|(?<typeAndUnit>[^<>{}\s]+(<|{)[^<>{}\s]+(>|})))"
             + @"(>|})$",
             RegexOptions.Compiled
         )
@@ -568,9 +565,6 @@ let inferPrimitiveType
     | InferenceMode'.NoInference -> fallbackType
     | InferenceMode'.InferTypesFromValuesOnly ->
         matchValue value
-        |> Option.defaultValue fallbackType
-    | InferenceMode'.InferTypesFromInlineSchemasOnly ->
-        matchInlineSchema value
         |> Option.defaultValue fallbackType
     | InferenceMode'.InferTypesFromValuesAndInlineSchemas ->
         matchInlineSchema value

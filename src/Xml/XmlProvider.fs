@@ -197,7 +197,6 @@ type public XmlProvider(cfg: TypeProviderConfig) as this =
               | InferTypesFromValuesOnly -> Types of values are infered from the Sample. Inline schema support is disabled. This is the default.
               | NoInference -> Inference is disabled. All values are infered as the most basic type permitted for the value (Usually string).
               | InferTypesFromValuesAndInlineSchemas -> Types of values are infered from both values and inline schemas. Inline schemas are special string values that can define a type and/or unit of measure. Supported syntax: typeof&lt;type&gt; or typeof{type} or typeof&lt;type&lt;measure&gt;&gt; or typeof{type{measure}}. Valid measures are the default SI units, and valid types are <c>int</c>, <c>int64</c>, <c>bool</c>, <c>float</c>, <c>decimal</c>, <c>date</c>, <c>datetimeoffset</c>, <c>timespan</c>, <c>guid</c>, <c>string</c>, <c>int option</c>, <c>int64 option</c>, <c>bool option</c>, <c>float option</c>, <c>decimal option</c>, <c>date option</c>, <c>datetimeoffset option</c>, <c>timespan option</c>, <c>guid option</c> and <c>string option</c>.
-              | InferTypesFromInlineSchemasOnly -> Types of values are infered only from inline schemas. Values that don't have an inline schema are infered as their most basic type (Usually string).
               Note inline schemas are not used from Xsd documents.
            </param>"""
 

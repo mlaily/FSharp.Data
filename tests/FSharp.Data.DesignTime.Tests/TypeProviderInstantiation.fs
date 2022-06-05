@@ -59,8 +59,7 @@ type HtmlProviderArgs =
       Culture : string
       Encoding : string
       ResolutionFolder : string
-      EmbeddedResource : string
-      InferenceMode: InferenceMode }
+      EmbeddedResource : string }
 
 type WorldBankProviderArgs =
     { Sources : string
@@ -129,8 +128,7 @@ type TypeProviderInstantiation =
                    box x.Culture
                    box x.Encoding
                    box x.ResolutionFolder
-                   box x.EmbeddedResource
-                   box x.InferenceMode |]
+                   box x.EmbeddedResource |]
             | WorldBank x ->
                 (fun cfg -> new WorldBankProvider(cfg) :> TypeProviderForNamespaces),
                 [| box x.Sources
@@ -172,11 +170,11 @@ type TypeProviderInstantiation =
              x.Sample
              x.PreferOptionals.ToString()
              x.IncludeLayoutTables.ToString()
-             x.Culture]
+             x.Culture ]
         | WorldBank x ->
             ["WorldBank"
              x.Sources
-             x.Asynchronous.ToString()]
+             x.Asynchronous.ToString() ]
         |> String.concat ","
 
     member x.ExpectedPath outputFolder =
@@ -246,8 +244,7 @@ type TypeProviderInstantiation =
                    Culture = args.[4]
                    Encoding = ""
                    ResolutionFolder = ""
-                   EmbeddedResource = ""
-                   InferenceMode = InferenceMode.InferTypesFromValuesOnly }
+                   EmbeddedResource = "" }
         | "WorldBank" ->
             WorldBank { Sources = args.[1]
                         Asynchronous = args.[2] |> bool.Parse }
