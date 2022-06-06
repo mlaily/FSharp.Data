@@ -67,7 +67,7 @@ type InferedType =
     | Record of name: string option * fields: InferedProperty list * optional: bool
     | Json of typ: InferedType * optional: bool
     | Collection of order: InferedTypeTag list * types: Map<InferedTypeTag, InferedMultiplicity * InferedType>
-    | Heterogeneous of types: Map<InferedTypeTag, InferedType>
+    | Heterogeneous of types: Map<InferedTypeTag, InferedType> * containsOptional: bool
     | Null
     | Top
 
@@ -87,7 +87,7 @@ type InferedType =
     member x.EnsuresHandlesMissingValues allowEmptyValues =
         match x with
         | Null
-        | Heterogeneous _
+        | Heterogeneous(containsOptional = true)
         | Primitive(optional = true)
         | Record(optional = true)
         | Json(optional = true) -> x
@@ -96,6 +96,7 @@ type InferedType =
             && InferedType.CanHaveEmptyValues typ
             ->
             x
+        | Heterogeneous (map, false) -> Heterogeneous(map, true)
         | Primitive (typ, unit, false, overrideOnMerge) -> Primitive(typ, unit, true, overrideOnMerge)
         | Record (name, props, false) -> Record(name, props, true)
         | Json (typ, false) -> Json(typ, true)
@@ -107,12 +108,15 @@ type InferedType =
             Collection(order, typesR)
         | Top -> failwith "EnsuresHandlesMissingValues: unexpected InferedType.Top"
 
-    member x.DropOptionality() =
+    member x.GetDropOptionality() =
         match x with
-        | Primitive (typ, unit, true, overrideOnMerge) -> Primitive(typ, unit, false, overrideOnMerge)
-        | Record (name, props, true) -> Record(name, props, false)
-        | Json (typ, true) -> Json(typ, false)
-        | _ -> x
+        | Primitive (typ, unit, true, overrideOnMerge) -> Primitive(typ, unit, false, overrideOnMerge), true
+        | Record (name, props, true) -> Record(name, props, false), true
+        | Json (typ, true) -> Json(typ, false), true
+        | Heterogeneous (map, true) -> Heterogeneous(map, false), true
+        | _ -> x, false
+
+    member x.DropOptionality() = x.GetDropOptionality() |> fst
 
     // We need to implement custom equality that returns 'true' when
     // values reference the same object (to support recursive types)
@@ -126,7 +130,7 @@ type InferedType =
             | Record (s1, pl1, b1), Record (s2, pl2, b2) -> s1 = s2 && pl1 = pl2 && b1 = b2
             | Json (t1, o1), Json (t2, o2) -> t1 = t2 && o1 = o2
             | Collection (o1, t1), Collection (o2, t2) -> o1 = o2 && t1 = t2
-            | Heterogeneous (m1), Heterogeneous (m2) -> m1 = m2
+            | Heterogeneous (m1, o1), Heterogeneous (m2, o2) -> m1 = m2 && o1 = o2
             | Null, Null
             | Top, Top -> true
             | _ -> false

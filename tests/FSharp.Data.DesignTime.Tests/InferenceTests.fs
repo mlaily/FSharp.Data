@@ -168,7 +168,7 @@ let ``Infers mixed fields of a record as heterogeneous type``() =
     Map.ofSeq [ InferedTypeTag.String, InferedType.Primitive(typeof<string>, None, false, false)
                 InferedTypeTag.Number, InferedType.Primitive(typeof<int64>, None, false, false) ]
   let expected =
-    [ { Name = "a"; Type = InferedType.Heterogeneous cases }]
+    [ { Name = "a"; Type = InferedType.Heterogeneous (cases, false) }]
     |> toRecord
     |> SimpleCollection
   let actual = JsonInference.inferType unitsOfMeasureProvider inferenceMode culture "" source

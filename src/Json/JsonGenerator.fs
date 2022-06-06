@@ -115,10 +115,10 @@ module JsonTypeBuilder =
         // normalize properties of the inferedType which don't affect code generation
         let rec normalize topLevel =
             function
-            | InferedType.Heterogeneous map ->
+            | InferedType.Heterogeneous (map, _) ->
                 map
                 |> Map.map (fun _ inferedType -> normalize false inferedType)
-                |> InferedType.Heterogeneous
+                |> (fun x -> InferedType.Heterogeneous(x, false))
             | InferedType.Collection (order, types) ->
                 InferedType.Collection(
                     order,
@@ -657,7 +657,7 @@ module JsonTypeBuilder =
                                 (result.ConvertedTypeErased ctx)
                                 (jDoc, cultureStr, tagCode, result.ConverterFunc ctx)))
 
-        | InferedType.Heterogeneous types ->
+        | InferedType.Heterogeneous (types, _) ->
             getOrCreateType ctx inferedType (fun () ->
 
                 // Generate a choice type that always calls `TryGetValueByTypeTag`

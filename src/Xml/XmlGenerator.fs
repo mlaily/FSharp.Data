@@ -80,7 +80,7 @@ module internal XmlTypeBuilder =
         match inferedProp with
         | { Type = (InferedType.Primitive _ | InferedType.Json _) as typ } -> Some([ typ ], [])
         | { Type = InferedType.Collection (order, types) } -> Some([], inOrder order types)
-        | { Type = InferedType.Heterogeneous cases } ->
+        | { Type = InferedType.Heterogeneous (cases, _) } ->
             let collections, others =
                 Map.toList cases
                 |> List.partition (fst >> (=) InferedTypeTag.Collection)
@@ -94,12 +94,12 @@ module internal XmlTypeBuilder =
         | { Type = InferedType.Top } -> Some([], [])
         | _ -> None
 
-    /// Succeeds when type is a heterogeneous type containing recors
+    /// Succeeds when type is a heterogeneous type containing records
     /// If the type is heterogeneous, but contains other things, exception
     /// is thrown (this is unexpected, because XML elements are always records)
     let (|HeterogeneousRecords|_|) inferedType =
         match inferedType with
-        | InferedType.Heterogeneous cases ->
+        | InferedType.Heterogeneous (cases, _) ->
             let records =
                 cases
                 |> List.ofSeq
@@ -335,7 +335,7 @@ module internal XmlTypeBuilder =
                           createMember typ conv
 
                       match attr.Type with
-                      | InferedType.Heterogeneous types ->
+                      | InferedType.Heterogeneous (types, _) ->
 
                           // If the attribute has multiple possible type (e.g. "bool|int") then we generate
                           // a choice type that is erased to 'option<string>' (for simplicity, assuming that

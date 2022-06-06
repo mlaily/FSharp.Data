@@ -371,4 +371,4 @@ module XsdInference =
             elms
             |> List.map (fun elm -> InferedTypeTag.Record(getElementName elm), inferElementType ctx elm)
             |> Map.ofList
-            |> InferedType.Heterogeneous
+            |> (fun x -> InferedType.Heterogeneous(x, false))
