@@ -179,8 +179,8 @@ let private (|SubtypePrimitives|_|) allowEmptyValues =
     function
     | InferedType.Primitive (t1, u1, o1, x1), InferedType.Primitive (t2, u2, o2, x2) ->
         match x1, x2 with
-        | true, false -> Some (t1, u1, o1, x1)
-        | false, true -> Some (t2, u2, o2, x2)
+        | true, false -> Some(t1, u1, o1, x1)
+        | false, true -> Some(t2, u2, o2, x2)
         // If both true or both false
         | _ ->
             // Re-annotate with the unit, if it is the same one
@@ -197,7 +197,7 @@ let private (|SubtypePrimitives|_|) allowEmptyValues =
 
                 let shouldOverrideOnMerge = x1 // both are the same
 
-                Some (t, unit, optional, shouldOverrideOnMerge)
+                Some(t, unit, optional, shouldOverrideOnMerge)
             | _ -> None
     | _ -> None
 
@@ -224,9 +224,16 @@ let rec subtypeInfered allowEmptyValues ot1 ot2 =
     | InferedType.Json (t1, o1), InferedType.Json (t2, o2) ->
         InferedType.Json(subtypeInfered allowEmptyValues t1 t2, o1 || o2)
     | InferedType.Heterogeneous t1, InferedType.Heterogeneous t2 ->
-        InferedType.Heterogeneous(unionHeterogeneousTypes allowEmptyValues t1 t2 |> Map.ofList)
+        InferedType.Heterogeneous(
+            unionHeterogeneousTypes allowEmptyValues t1 t2
+            |> Map.ofList
+        )
     | InferedType.Collection (o1, t1), InferedType.Collection (o2, t2) ->
-        InferedType.Collection(unionCollectionOrder o1 o2, unionCollectionTypes allowEmptyValues t1 t2 |> Map.ofList)
+        InferedType.Collection(
+            unionCollectionOrder o1 o2,
+            unionCollectionTypes allowEmptyValues t1 t2
+            |> Map.ofList
+        )
 
     // Top type can be merged with anything else
     | t, InferedType.Top
@@ -240,19 +247,23 @@ let rec subtypeInfered allowEmptyValues ot1 ot2 =
         // Add the other type as another option. We should never add
         // heterogeneous type as an option of other heterogeneous type.
         assert (typeTag other <> InferedTypeTag.Heterogeneous)
-        let tagMerged = unionHeterogeneousTypes allowEmptyValues h (Map.ofSeq [ typeTag other, other ])
+
+        let tagMerged =
+            unionHeterogeneousTypes allowEmptyValues h (Map.ofSeq [ typeTag other, other ])
+
         match other with
         | InferedType.Primitive (_, _, _, true) ->
             let primitiveOverrides, nonPrimitives =
                 let primitiveOverrides, nonPrimitives = ResizeArray(), ResizeArray()
+
                 tagMerged
                 |> List.iter (fun (tag, typ) ->
                     match typ with
-                    | InferedType.Primitive (_, _, _, true) -> primitiveOverrides.Add (tag, typ)
+                    | InferedType.Primitive (_, _, _, true) -> primitiveOverrides.Add(tag, typ)
                     | InferedType.Primitive (_, _, _, false) -> () // We don't need to track normal primitives
-                    | _ -> nonPrimitives.Add (tag, typ))
-                primitiveOverrides |> List.ofSeq,
-                nonPrimitives |> List.ofSeq
+                    | _ -> nonPrimitives.Add(tag, typ))
+
+                primitiveOverrides |> List.ofSeq, nonPrimitives |> List.ofSeq
 
             // For all the following cases, if there is at least one overriding primitive,
             // normal primitives are discarded.
@@ -266,21 +277,24 @@ let rec subtypeInfered allowEmptyValues ot1 ot2 =
             | [ singlePrimitive ], nonPrimitives ->
                 InferedType.Heterogeneous(singlePrimitive :: nonPrimitives |> Map.ofList)
             // If there are more than one overriding primitive, also keep the heterogeneous type
-            | primitives, nonPrimitives ->
-                InferedType.Heterogeneous(primitives @ nonPrimitives |> Map.ofList)
+            | primitives, nonPrimitives -> InferedType.Heterogeneous(primitives @ nonPrimitives |> Map.ofList)
 
         | _otherType -> InferedType.Heterogeneous(tagMerged |> Map.ofList)
 
     // Otherwise the types are incompatible so we build a new heterogeneous type
     | t1, t2 ->
         let h1, h2 = Map.ofSeq [ typeTag t1, t1 ], Map.ofSeq [ typeTag t2, t2 ]
-        InferedType.Heterogeneous(unionHeterogeneousTypes allowEmptyValues h1 h2 |> Map.ofList)
 
-    // debug:
-    //let ot1f, ot2f, resultf = sprintf "%A" ot1, sprintf "%A"  ot2, sprintf "%A" result
-    //ot1f |> ignore
-    //ot2f |> ignore
-    //resultf |> ignore
+        InferedType.Heterogeneous(
+            unionHeterogeneousTypes allowEmptyValues h1 h2
+            |> Map.ofList
+        )
+
+// debug:
+//let ot1f, ot2f, resultf = sprintf "%A" ot1, sprintf "%A"  ot2, sprintf "%A" result
+//ot1f |> ignore
+//ot2f |> ignore
+//resultf |> ignore
 
 /// Given two heterogeneous types, get a single type that can represent all the
 /// types that the two heterogeneous types can.
@@ -289,7 +303,7 @@ and private unionHeterogeneousTypes allowEmptyValues cases1 cases2 =
     |> List.map (fun (tag, fst, snd) ->
         match tag, fst, snd with
         | tag, Some (KeyValue (_, t)), None
-        | tag, None, Some (KeyValue (_, t)) -> tag,  t.DropOptionality()
+        | tag, None, Some (KeyValue (_, t)) -> tag, t.DropOptionality()
         | tag, Some (KeyValue (_, t1)), Some (KeyValue (_, t2)) ->
             tag, (subtypeInfered allowEmptyValues t1 t2).DropOptionality()
         | _ -> failwith "unionHeterogeneousTypes: pairBy returned None, None")

@@ -31,7 +31,7 @@ let private nameToTypeWithNullables =
         "datetimeoffset option", (typeof<DateTimeOffset>, TypeWrapper.Option)
         "timespan option", (typeof<TimeSpan>, TypeWrapper.Option)
         "guid option", (typeof<Guid>, TypeWrapper.Option)
-        "string option", (typeof<string>, TypeWrapper.Option)]
+        "string option", (typeof<string>, TypeWrapper.Option) ]
     |> dict
 
 let private nameAndTypeRegex =
