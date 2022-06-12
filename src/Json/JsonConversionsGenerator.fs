@@ -51,6 +51,7 @@ type JsonConversionCallingType =
 let convertJsonValue missingValuesStr cultureStr canPassAllConversionCallingTypes (field: PrimitiveInferedProperty) =
 
     assert (field.Name = "")
+
     let returnType =
         match field.TypeWrapper with
         | TypeWrapper.None -> field.TypeWithMeasure
