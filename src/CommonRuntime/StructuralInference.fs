@@ -227,11 +227,12 @@ let rec subtypeInfered allowEmptyValues ot1 ot2 =
             let map, containsOptional = unionHeterogeneousTypes allowEmptyValues t1 t2
             map |> Map.ofList, containsOptional || o1 || o2
         )
-    | InferedType.Collection (o1, t1), InferedType.Collection (o2, t2) ->
+    | InferedType.Collection (o1, t1, opt1), InferedType.Collection (o2, t2, opt2) ->
         InferedType.Collection(
             unionCollectionOrder o1 o2,
             unionCollectionTypes allowEmptyValues t1 t2
-            |> Map.ofList
+            |> Map.ofList,
+            opt1 || opt2
         )
 
     // Top type can be merged with anything else
@@ -390,7 +391,7 @@ let inferCollectionType allowEmptyValues types =
             tag, (multiple, Seq.fold (subtypeInfered allowEmptyValues) InferedType.Top types))
         |> Seq.toList
 
-    InferedType.Collection(List.map fst groupedTypes, Map.ofList groupedTypes)
+    InferedType.Collection(List.map fst groupedTypes, Map.ofList groupedTypes, false)
 
 type IUnitsOfMeasureProvider =
     abstract SI: str: string -> System.Type

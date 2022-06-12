@@ -119,10 +119,11 @@ module JsonTypeBuilder =
                 map
                 |> Map.map (fun _ inferedType -> normalize false inferedType)
                 |> (fun x -> InferedType.Heterogeneous(x, false))
-            | InferedType.Collection (order, types) ->
+            | InferedType.Collection (order, types, optional) ->
                 InferedType.Collection(
                     order,
-                    Map.map (fun _ (multiplicity, inferedType) -> multiplicity, normalize false inferedType) types
+                    Map.map (fun _ (multiplicity, inferedType) -> multiplicity, normalize false inferedType) types,
+                    optional
                 )
             | InferedType.Record (_, props, optional) ->
                 let props =
@@ -324,10 +325,11 @@ module JsonTypeBuilder =
 
         let inferedType =
             match inferedType with
-            | InferedType.Collection (order, types) ->
+            | InferedType.Collection (order, types, optional) ->
                 InferedType.Collection(
                     List.filter ((<>) InferedTypeTag.Null) order,
-                    Map.remove InferedTypeTag.Null types
+                    Map.remove InferedTypeTag.Null types,
+                    optional
                 )
             | x -> x
 
@@ -351,8 +353,11 @@ module JsonTypeBuilder =
               OptionalConverter = None
               ConversionCallingType = JsonDocument }
 
-        | InferedType.Collection (_, SingletonMap (_, (_, typ)))
-        | InferedType.Collection (_, EmptyMap InferedType.Top typ) ->
+        | InferedType.Collection (_, SingletonMap (_, (_, typ)), optional)
+        | InferedType.Collection (_, EmptyMap InferedType.Top typ, optional) ->
+
+            if optional && not optionalityHandledByParent then
+                failwithf "generateJsonType: optionality not handled for %A" inferedType
 
             let elementResult = generateJsonType ctx false false nameOverride typ
 
@@ -624,8 +629,11 @@ module JsonTypeBuilder =
 
                 objectTy)
 
-        | InferedType.Collection (_, types) ->
+        | InferedType.Collection (_, types, optional) ->
             getOrCreateType ctx inferedType (fun () ->
+
+                if optional && not optionalityHandledByParent then
+                    failwithf "generateJsonType: optionality not handled for %A" inferedType
 
                 // Generate a choice type that calls either `GetArrayChildrenByTypeTag`
                 // or `GetArrayChildByTypeTag`, depending on the multiplicity of the item

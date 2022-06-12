@@ -65,7 +65,7 @@ type InferedType =
     | Primitive of typ: Type * unit: option<System.Type> * optional: bool * shouldOverrideOnMerge: bool
     | Record of name: string option * fields: InferedProperty list * optional: bool
     | Json of typ: InferedType * optional: bool
-    | Collection of order: InferedTypeTag list * types: Map<InferedTypeTag, InferedMultiplicity * InferedType>
+    | Collection of order: InferedTypeTag list * types: Map<InferedTypeTag, InferedMultiplicity * InferedType> * optional: bool
     | Heterogeneous of types: Map<InferedTypeTag, InferedType> * containsOptional: bool
     | Null
     | Top
@@ -75,6 +75,7 @@ type InferedType =
         | Primitive(optional = true)
         | Record(optional = true)
         | Json(optional = true) -> true
+        | Collection(optional = true) -> true
         | _ -> false
 
     static member CanHaveEmptyValues typ =
@@ -99,12 +100,12 @@ type InferedType =
         | Primitive (typ, unit, false, overrideOnMerge) -> Primitive(typ, unit, true, overrideOnMerge)
         | Record (name, props, false) -> Record(name, props, true)
         | Json (typ, false) -> Json(typ, true)
-        | Collection (order, types) ->
+        | Collection (order, types, _) ->
             let typesR =
                 types
                 |> Map.map (fun _ (mult, typ) -> (if mult = Single then OptionalSingle else mult), typ)
 
-            Collection(order, typesR)
+            Collection(order, typesR, true)
         | Top -> failwith "EnsuresHandlesMissingValues: unexpected InferedType.Top"
 
     member x.GetDropOptionality() =
@@ -128,7 +129,7 @@ type InferedType =
             | Primitive (t1, ot1, b1, x1), Primitive (t2, ot2, b2, x2) -> t1 = t2 && ot1 = ot2 && b1 = b2 && x1 = x2
             | Record (s1, pl1, b1), Record (s2, pl2, b2) -> s1 = s2 && pl1 = pl2 && b1 = b2
             | Json (t1, o1), Json (t2, o2) -> t1 = t2 && o1 = o2
-            | Collection (o1, t1), Collection (o2, t2) -> o1 = o2 && t1 = t2
+            | Collection (o1, t1, opt1), Collection (o2, t2, opt2) -> o1 = o2 && t1 = t2 && opt1 = opt2
             | Heterogeneous (m1, o1), Heterogeneous (m2, o2) -> m1 = m2 && o1 = o2
             | Null, Null
             | Top, Top -> true

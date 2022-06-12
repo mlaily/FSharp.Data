@@ -420,10 +420,29 @@ type JsonRuntime =
             None
 
     static member private ToJsonValue (cultureInfo: CultureInfo) (value: obj) =
-        let inline optionToJson f =
+        let inline optionToJson (f: 'a -> JsonValue) =
             function
             | None -> JsonValue.Null
             | Some v -> f v
+
+        let (|ArrayOption|_|) v =
+            assert (v <> null)
+            let optionType = v.GetType()
+            if optionType.GetGenericTypeDefinition() <> (typedefof<option<_>>) then
+                None
+            else
+                let optionArg = optionType.GetGenericArguments()[0]
+                if optionArg.BaseType = typeof<Array> then
+                    let caseInfo, fields = FSharp.Reflection.FSharpValue.GetUnionFields(v, optionType)
+                    match caseInfo.Name, fields with
+                    | "Some", [| x |] ->
+                        if isNull x then
+                            None |> Some
+                        else
+                            (unbox x : Array) |> Some |> Some
+                    | "None", _ -> None |> Some
+                    | name, x -> failwithf "Could not unwrap case %s with fields %A" name x
+                else None
 
         match value with
         | null -> JsonValue.Null
@@ -457,6 +476,9 @@ type JsonRuntime =
         | :? option<Guid> as v -> optionToJson (fun (g: Guid) -> g.ToString() |> JsonValue.String) v
         | :? option<IJsonDocument> as v -> optionToJson (fun (v: IJsonDocument) -> v.JsonValue) v
         | :? option<JsonValue> as v -> optionToJson id v
+
+        | ArrayOption v ->
+            optionToJson (fun (v: Array) -> JsonValue.Array [| for elem in v -> JsonRuntime.ToJsonValue cultureInfo elem |]) v
 
         | _ -> failwithf "Can't create JsonValue from %A" value
 
