@@ -1,4 +1,4 @@
-﻿// --------------------------------------------------------------------------------------
+// --------------------------------------------------------------------------------------
 // CSV type provider - generate code for accessing inferred elements
 // --------------------------------------------------------------------------------------
 namespace ProviderImplementation
@@ -33,7 +33,7 @@ module internal CsvTypeBuilder =
             inferredFields
             |> List.mapi (fun index field ->
                 let typ, typWithoutMeasure, conv, convBack =
-                    ConversionsGenerator.convertStringValue missingValuesStr cultureStr field
+                    ConversionsGenerator.convertStringValue missingValuesStr true true cultureStr field
 
                 let propertyName = NameUtils.capitalizeFirstLetter field.Name
 
@@ -49,7 +49,7 @@ module internal CsvTypeBuilder =
                     )
 
                 let convert rowVarExpr =
-                    conv <@ TextConversions.AsString((%%rowVarExpr: string[]).[index]) @>
+                    conv <@ TextConversions.AsString (true) ((%%rowVarExpr: string[]).[index]) @>
 
                 let convertBack rowVarExpr =
                     convBack (

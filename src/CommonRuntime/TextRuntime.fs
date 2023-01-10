@@ -144,15 +144,14 @@ type TextRuntime =
     // --------------------------------------------------------------------------------------
 
     /// Operation that extracts the value from an option and reports a meaningful error message when the value is not there
-    /// For missing strings we return "", and for missing doubles we return NaN
-    /// For other types an error is thrown
-    static member GetNonOptionalValue<'T>(name: string, opt: option<'T>, originalValue) : 'T =
+    static member GetNonOptionalValue<'T>(name: string, opt: option<'T>, originalValue, missingFloatsToNaN, missingStringsToEmpty) : 'T =
         match opt, originalValue with
         | Some value, _ -> value
-        | None, _ when typeof<'T> = typeof<string> -> "" |> unbox
-        | None, _ when typeof<'T> = typeof<float> -> Double.NaN |> unbox
+        | None, _ when missingFloatsToNaN && typeof<'T> = typeof<float> -> Double.NaN |> unbox
+        | None, _ when missingStringsToEmpty && typeof<'T> = typeof<string> -> "" |> unbox
         | None, None -> failwithf "%s is missing" name
-        | None, Some originalValue -> failwithf "Expecting %s in %s, got %s" (typeof<'T>.Name) name originalValue
+        | None, Some originalValue ->
+            failwithf "Expecting value of type %s in %s, got %s" (typeof<'T>.Name) name originalValue
 
     /// Turn an F# option type Option<'T> containing a primitive
     /// value type into a .NET type Nullable<'T>

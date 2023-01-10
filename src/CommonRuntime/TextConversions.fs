@@ -99,9 +99,14 @@ type TextConversions private () =
             )
         )
 
-    /// Turns empty or null string value into None, otherwise returns Some
-    static member AsString str =
-        if String.IsNullOrWhiteSpace str then None else Some str
+    /// Turns null or whitespace string value into None, otherwise returns Some
+    static member AsString useNoneForWhitespace str =
+        if isNull str
+           || (useNoneForWhitespace
+               && String.IsNullOrWhiteSpace str) then
+            None
+        else
+            Some str
 
     static member AsInteger cultureInfo text =
         Int32.TryParse(TextConversions.RemoveAdorners text, NumberStyles.Integer, cultureInfo)

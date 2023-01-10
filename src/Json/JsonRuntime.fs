@@ -24,7 +24,7 @@ type JsonRuntime =
 
     static member ConvertString(cultureStr, json) =
         json
-        |> Option.bind (JsonConversions.AsString true (TextRuntime.GetCulture cultureStr))
+        |> Option.bind (JsonConversions.AsString(TextRuntime.GetCulture cultureStr))
 
     static member ConvertInteger(cultureStr, json) =
         json
@@ -66,29 +66,17 @@ type JsonRuntime =
         json |> Option.bind JsonConversions.AsGuid
 
     /// Operation that extracts the value from an option and reports a meaningful error message when the value is not there
-    /// If the originalValue is a scalar, for missing strings we return "", and for missing doubles we return NaN
-    /// For other types an error is thrown
     static member GetNonOptionalValue<'T>(path: string, opt: option<'T>, originalValue) : 'T =
-        let getTypeName () =
-            let name = typeof<'T>.Name
-
-            if name.StartsWith("i", StringComparison.OrdinalIgnoreCase) then
-                "an " + name
-            else
-                "a " + name
-
         match opt, originalValue with
         | Some value, _ -> value
+        | None, None -> failwithf "Non-optional '%s' is null or missing" path
         | None,
           Some ((JsonValue.Array _
           | JsonValue.Record _) as x) ->
-            failwithf "Expecting %s at '%s', got %s" (getTypeName ()) path
+            failwithf "Expecting value of type %s at '%s', got %s" (typeof<'T>.Name) path
             <| x.ToString(JsonSaveOptions.DisableFormatting)
-        | None, _ when typeof<'T> = typeof<string> -> "" |> unbox
-        | None, _ when typeof<'T> = typeof<float> -> Double.NaN |> unbox
-        | None, None -> failwithf "'%s' is missing" path
         | None, Some x ->
-            failwithf "Expecting %s at '%s', got %s" (getTypeName ()) path
+            failwithf "Expecting value of type %s at '%s', got %s" (typeof<'T>.Name) path
             <| x.ToString(JsonSaveOptions.DisableFormatting)
 
     /// Converts JSON array to array of target types
@@ -98,7 +86,7 @@ type JsonRuntime =
             elements
             |> Array.filter (function
                 | JsonValue.Null -> false
-                | JsonValue.String s when s |> TextConversions.AsString |> Option.isNone -> false
+                | JsonValue.String s when s |> TextConversions.AsString false |> Option.isNone -> false
                 | _ -> true)
             |> Array.mapi (fun i value ->
                 doc.CreateNew(value, "[" + (string i) + "]")
@@ -207,8 +195,7 @@ type JsonRuntime =
     static member TryGetPropertyUnpacked(doc: IJsonDocument, name) =
         doc.JsonValue.TryGetProperty(name)
         |> Option.bind (function
-            | JsonValue.Null
-            | JsonValue.String "" -> None
+            | JsonValue.Null -> None
             | x -> Some x)
 
     /// Get optional json property and wrap it together with path
@@ -250,7 +237,7 @@ type JsonRuntime =
                 || (JsonConversions.AsFloat [||] true cultureInfo json).IsSome
         | InferedTypeTag.Boolean -> JsonConversions.AsBoolean >> Option.isSome
         | InferedTypeTag.String ->
-            JsonConversions.AsString true (TextRuntime.GetCulture cultureStr)
+            JsonConversions.AsString(TextRuntime.GetCulture cultureStr)
             >> Option.isSome
         | InferedTypeTag.DateTime ->
             let cultureInfo = TextRuntime.GetCulture cultureStr

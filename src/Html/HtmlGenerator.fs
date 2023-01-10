@@ -56,7 +56,7 @@ module internal HtmlGenerator =
             columns
             |> List.mapi (fun index field ->
                 let typ, typWithoutMeasure, conv, _convBack =
-                    ConversionsGenerator.convertStringValue missingValuesStr cultureStr field
+                    ConversionsGenerator.convertStringValue missingValuesStr true true cultureStr field
 
                 { TypeForTuple = typWithoutMeasure
                   ProvidedProperty =
@@ -70,7 +70,8 @@ module internal HtmlGenerator =
                                 else
                                     Expr.TupleGet(row, index)
                     )
-                  Convert = fun rowVarExpr -> conv <@ TextConversions.AsString((%%rowVarExpr: string[]).[index]) @> })
+                  Convert =
+                    fun rowVarExpr -> conv <@ TextConversions.AsString true ((%%rowVarExpr: string[]).[index]) @> })
 
         // The erased row type will be a tuple of all the field types (without the units of measure)
         let rowErasedType =
@@ -138,6 +139,8 @@ module internal HtmlGenerator =
                 let typ, _, conv, _convBack =
                     ConversionsGenerator.convertStringValue
                         missingValuesStr
+                        true
+                        true
                         cultureStr
                         (StructuralTypes.PrimitiveInferedProperty.Create("", typ, optional, None))
 
@@ -146,6 +149,8 @@ module internal HtmlGenerator =
                 let typ, _, conv, _convBack =
                     ConversionsGenerator.convertStringValue
                         missingValuesStr
+                        true
+                        true
                         cultureStr
                         (StructuralTypes.PrimitiveInferedProperty.Create("", typeof<string>, false, None))
 
@@ -157,7 +162,7 @@ module internal HtmlGenerator =
 
             let rowVar = Var("row", typeof<string>)
             let rowVarExpr = Expr.Var rowVar
-            let body = conv <@ TextConversions.AsString(%%rowVarExpr: string) @>
+            let body = conv <@ TextConversions.AsString true (%%rowVarExpr: string) @>
 
             let delegateType =
                 typedefof<Func<_, _>>.MakeGenericType (typeof<string>, listItemType)
@@ -200,6 +205,8 @@ module internal HtmlGenerator =
                     let typ, _, conv, _convBack =
                         ConversionsGenerator.convertStringValue
                             missingValuesStr
+                            true
+                            true
                             cultureStr
                             (StructuralTypes.PrimitiveInferedProperty.Create("", typ, optional, None))
 
@@ -208,6 +215,8 @@ module internal HtmlGenerator =
                     let typ, _, conv, _convBack =
                         ConversionsGenerator.convertStringValue
                             missingValuesStr
+                            true
+                            true
                             cultureStr
                             (StructuralTypes.PrimitiveInferedProperty.Create("", typeof<String>, false, None))
 
@@ -219,7 +228,7 @@ module internal HtmlGenerator =
 
                 let rowVar = Var("row", typeof<string>)
                 let rowVarExpr = Expr.Var rowVar
-                let body = conv <@ TextConversions.AsString(%%rowVarExpr: string) @>
+                let body = conv <@ TextConversions.AsString true (%%rowVarExpr: string) @>
 
                 let delegateType =
                     typedefof<Func<_, _>>.MakeGenericType (typeof<string>, listItemType)

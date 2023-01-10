@@ -1,4 +1,4 @@
-﻿// --------------------------------------------------------------------------------------
+// --------------------------------------------------------------------------------------
 // Helper operations for converting converting json values to other types
 // --------------------------------------------------------------------------------------
 
@@ -17,17 +17,17 @@ module private Helpers =
 /// Conversions from JsonValue to string/int/int64/decimal/float/boolean/datetime/datetimeoffset/timespan/guid options
 type JsonConversions =
 
-    static member AsString useNoneForNullOrEmpty (cultureInfo: IFormatProvider) =
+    static member AsString (cultureInfo: IFormatProvider) =
         function
         | JsonValue.String s ->
-            if useNoneForNullOrEmpty && String.IsNullOrEmpty s then
+            if isNull s then
                 None
             else
                 Some s
         | JsonValue.Boolean b -> Some(if b then "true" else "false")
         | JsonValue.Number n -> n.ToString(cultureInfo) |> Some
         | JsonValue.Float f -> f.ToString(cultureInfo) |> Some
-        | JsonValue.Null when not useNoneForNullOrEmpty -> Some ""
+        | JsonValue.Null
         | _ -> None
 
     static member AsInteger cultureInfo =

@@ -519,6 +519,7 @@ let inferPrimitiveType
     (cultureInfo: CultureInfo)
     (value: string)
     (desiredUnit: Type option)
+    (inferEmptyStringsAsNull: bool)
     =
 
     // Helper for calling TextConversions.AsXyz functions
@@ -553,7 +554,7 @@ let inferPrimitiveType
             Some(InferedType.Primitive(typ, desiredUnit, false, false))
 
         match value with
-        | "" -> Some InferedType.Null
+        | "" when inferEmptyStringsAsNull -> Some InferedType.Null
         | Parse TextConversions.AsInteger 0 -> makePrimitive typeof<Bit0>
         | Parse TextConversions.AsInteger 1 -> makePrimitive typeof<Bit1>
         | ParseNoCulture TextConversions.AsBoolean _ -> makePrimitive typeof<bool>
@@ -571,7 +572,7 @@ let inferPrimitiveType
     /// Parses values looking like "typeof<int> or typeof<int<metre>>" and returns the appropriate type.
     let matchInlineSchema useInlineSchemasOverrides value =
         match value with
-        | "" -> Some InferedType.Null
+        | "" when inferEmptyStringsAsNull -> Some InferedType.Null
         | nonEmptyValue ->
             // Validates that it looks like an inline schema before trying to extract the type and unit:
             let m = validInlineSchema.Value.Match(nonEmptyValue)
@@ -613,5 +614,5 @@ let inferPrimitiveType
 
 /// Infers the type of a simple string value
 [<Obsolete("This API will be made internal in a future release. Please file an issue at https://github.com/fsprojects/FSharp.Data/issues/1458 if you need this public.")>]
-let getInferedTypeFromString unitsOfMeasureProvider inferenceMode cultureInfo value unit =
-    inferPrimitiveType unitsOfMeasureProvider inferenceMode cultureInfo value unit
+let getInferedTypeFromString unitsOfMeasureProvider inferenceMode cultureInfo value unit inferEmptyStringsAsNull =
+    inferPrimitiveType unitsOfMeasureProvider inferenceMode cultureInfo value unit inferEmptyStringsAsNull

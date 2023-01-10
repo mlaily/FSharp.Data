@@ -119,7 +119,7 @@ let ``Unions properties of records in a collection``() =
   let source = JsonValue.Parse """[ {"a":1, "b":""}, {"a":1.2, "c":true} ]"""
   let expected =
     [ { Name = "a"; Type = InferedType.Primitive(typeof<decimal>, None, false, false) }
-      { Name = "b"; Type = InferedType.Null }
+      { Name = "b"; Type = InferedType.Primitive(typeof<string>, None, true, false) }
       { Name = "c"; Type = InferedType.Primitive(typeof<bool>, None, true, false) } ]
     |> toRecord
     |> SimpleCollection
@@ -371,9 +371,9 @@ let ``Doesn't infer 12-002 as a date``() =
   let actual = JsonInference.inferType unitsOfMeasureProvider inferenceMode culture "" source
   actual |> should equal expected
 
-[<Test>]
-let ``Doesn't infer ad3mar as a date``() =
-  StructuralInference.inferPrimitiveType unitsOfMeasureProvider inferenceMode CultureInfo.InvariantCulture "ad3mar" None
+[<Theory>]
+let ``Doesn't infer ad3mar as a date``(inferEmptyStringsAsNull) =
+  StructuralInference.inferPrimitiveType unitsOfMeasureProvider inferenceMode CultureInfo.InvariantCulture "ad3mar" None inferEmptyStringsAsNull
   |> should equal (InferedType.Primitive(typeof<string>, None, false, false))
 
 [<Test>]

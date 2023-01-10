@@ -1,4 +1,4 @@
-﻿/// Extension methods that can be used to work with JsonValue in a less safe, but more convenient way.
+/// Extension methods that can be used to work with JsonValue in a less safe, but more convenient way.
 /// This module also provides the dynamic operator.
 
 namespace FSharp.Data
@@ -75,11 +75,14 @@ type JsonExtensions =
     static member AsString(x, [<Optional>] ?cultureInfo) =
         let cultureInfo = defaultArg cultureInfo CultureInfo.InvariantCulture
 
-        match JsonConversions.AsString false cultureInfo x with
-        | Some s -> s
+        match x with
+        | JsonValue.Null -> ""
         | _ ->
-            failwithf "Not a string: %s"
-            <| x.ToString(JsonSaveOptions.DisableFormatting)
+            match JsonConversions.AsString cultureInfo x with
+            | Some s -> s
+            | _ ->
+                failwithf "Not a string: %s"
+                <| x.ToString(JsonSaveOptions.DisableFormatting)
 
     /// Get a number as an integer (assuming that the value fits in integer)
     [<Extension>]
@@ -183,12 +186,15 @@ type JsonExtensions =
     /// Get inner text of an element
     [<Extension>]
     static member InnerText(x) =
-        match JsonConversions.AsString false CultureInfo.InvariantCulture x with
-        | Some str -> str
-        | None ->
-            JsonExtensions.AsArray(x)
-            |> Array.map (fun e -> JsonExtensions.InnerText(e))
-            |> String.Concat
+        match x with
+        | JsonValue.Null -> ""
+        | _ ->
+            match JsonConversions.AsString CultureInfo.InvariantCulture x with
+            | Some str -> str
+            | None ->
+                JsonExtensions.AsArray(x)
+                |> Array.map (fun e -> JsonExtensions.InnerText(e))
+                |> String.Concat
 
 /// Provides the dynamic operator for getting a property of a JSON object
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]

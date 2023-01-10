@@ -36,22 +36,22 @@ let shouldThrow message func =
 [<Test>]
 let ``Reading a required field that is null throws an exception`` () = 
   let prov = NumericFields.Parse(""" {"a":null, "b":123} """)
-  (fun () -> prov.A) |> shouldThrow "'/a' is missing"
+  (fun () -> prov.A) |> shouldThrow "Non-optional '/a' is null or missing"
 
 [<Test>]
 let ``Reading a required field that is missing throws an exception`` () = 
   let prov = NumericFields.Parse(""" {"b":123} """)
-  (fun () -> prov.A) |> shouldThrow "'/a' is missing"
+  (fun () -> prov.A) |> shouldThrow "Non-optional '/a' is null or missing"
 
 [<Test>]
 let ``Reading a required decimal that is not a valid decimal throws an exception`` () = 
   let prov = NumericFields.Parse(""" {"a":"hello", "b":123} """)
-  (fun () -> prov.A) |> shouldThrow "Expecting a Decimal at '/a', got \"hello\""
+  (fun () -> prov.A) |> shouldThrow "Expecting value of type Decimal at '/a', got \"hello\""
 
 [<Test>]
-let ``Reading a required float that is not a valid float returns NaN`` () = 
+let ``Reading a required float that is not a valid float throws an exception`` () = 
   let prov = DecimalFields.Parse(""" {"a":"hello", "b":123} """)
-  prov.A |> should equal Double.NaN
+  (fun () -> prov.A) |> shouldThrow "Expecting value of type Double at '/a', got \"hello\""
 
 [<Test>]
 let ``Can control type inference`` () =
@@ -88,8 +88,8 @@ let ``Optional strings correctly handled when missing or null``() =
     |> Seq.map (fun tweet -> tweet.Text)
     |> Seq.toList
     |> List.partition ((=) None)
-  withoutText.Length |> should equal 5
-  withText.Length |> should equal 17
+  withoutText.Length |> should equal 4
+  withText.Length |> should equal 18
 
 [<Test>]
 let ``Optional records correctly handled when missing``() = 
@@ -120,17 +120,25 @@ let personJson = """
 {
     "firstName": "Bas",
     "lastName": "Rutten",
-    "address": ""
+    "address": null
+  }
+,
+{
+    "firstName": "Bas",
+    "lastName": "Rutten",
+    "address": "a string"
   }
 ]
 """
 
 [<Test>]
 let ``Optional records correctly handled when empty string``() =
+    // Note: this test case might not be relevant anymore now that empty strings are just strings...
+    // (they used to be considered as missing values in the same regard as null or missing properties)
     let j = JsonProvider<personJson>.GetSamples()
-    j.[0].Address.IsSome |> should equal true
-    j.[0].Address.Value.City |> should equal "Dallas"
-    j.[1].Address |> should equal None
+    j.[0].Address.Record.IsSome |> should equal true
+    j.[0].Address.Record.Value.City |> should equal "Dallas"
+    j.[1].Address.String |> should equal None
 
 [<Test>]
 let ``Optional collections correctly handled when null``() = 
@@ -162,20 +170,21 @@ let ``Allways null properties correctly handled both when present and missing``(
     c.JsonValue |> should equal JsonValue.Null
 
 [<Test>]
-let ``Nulls, Missing, and "" should make the type optional``() =
-    let j = JsonProvider<"""[{"a":"","b":null},{"a":2,"b":"3.4","c":"true"}]""">.GetSamples()
-    j.[0].A |> should equal None
+let ``Nulls and Missing should make the type optional but "" should not``() =
+    let j = JsonProvider<"""[{"a":"","b":null},{"a":"x","b":"3.4","c":"true"}]""">.GetSamples()
+    j.[0].A |> should equal ""
     j.[0].B |> should equal None
     j.[0].C |> should equal None
-    j.[1].A |> should equal (Some 2)
+    j.[1].A |> should equal "x"
     j.[1].B |> should equal (Some 3.4m)
     j.[1].C |> should equal (Some true)
 
 [<Test>]
-let ``Heterogeneous types with Nulls, Missing, and "" should return None on all choices``() =
+let ``Heterogeneous types with Nulls and Missing should return None on all choices``() =
     let j = JsonProvider<"""[{"a":"","b":null},{"a":2,"b":"3.4","c":"true"},{"a":false,"b":"2002/10/10","c":"2"},{"a":[],"b":[1],"c":{"z":1}},{"b":"00:30:00"}]""">.GetSamples()
     j.[0].A.Boolean  |> should equal None
     j.[0].A.Number   |> should equal None
+    j.[0].A.String   |> should equal (Some "")
     j.[0].A.Array    |> should equal None
     j.[0].B.DateTime |> should equal None
     j.[0].B.TimeSpan |> should equal None
@@ -187,6 +196,7 @@ let ``Heterogeneous types with Nulls, Missing, and "" should return None on all 
     
     j.[1].A.Boolean  |> should equal None
     j.[1].A.Number   |> should equal (Some 2)
+    j.[1].A.String   |> should equal (Some "2")
     j.[1].A.Array    |> should equal None
     j.[1].B.DateTime |> should equal (Some (DateTime(DateTime.Today.Year,3,4)))
     j.[1].B.TimeSpan |> should equal None
@@ -198,6 +208,7 @@ let ``Heterogeneous types with Nulls, Missing, and "" should return None on all 
 
     j.[2].A.Boolean  |> should equal (Some false)
     j.[2].A.Number   |> should equal None
+    j.[2].A.String   |> should equal (Some "false")
     j.[2].A.Array    |> should equal None
     j.[2].B.DateTime |> should equal (Some (DateTime(2002,10,10)))
     j.[2].B.TimeSpan |> should equal None
@@ -209,6 +220,7 @@ let ``Heterogeneous types with Nulls, Missing, and "" should return None on all 
 
     j.[3].A.Boolean  |> should equal None
     j.[3].A.Number   |> should equal None
+    j.[3].A.String   |> should equal None
     j.[3].A.Array    |> should equal (Some (Array.zeroCreate<IJsonDocument> 0))
     j.[3].B.DateTime |> should equal None
     j.[3].B.TimeSpan |> should equal None
@@ -228,7 +240,7 @@ let ``SampleIsList for json correctly handled``() =
         match tweet.Text with
         | Some _ -> 0
         | None -> 1)
-    |> should equal 5
+    |> should equal 4
 
 [<Test>]
 let ``Null values correctly handled``() = 
@@ -612,7 +624,7 @@ let ``Can construct complex objects``() =
     let label1 = GitHub.Label("url", "name", GitHub.FloatOrString(1.5))
     let label2 = GitHub.Label("url", "name", GitHub.FloatOrString("string"))
     let json = GitHub.Issue("url", "labelsUrl", "commentsUrl", "eventsUrl", "htmlUrl", 0, 1, "title", user, [| label1; label2 |], "state",
-                            JsonValue.Null, JsonValue.Null, 2, DateTimeOffset(2013,03,15,0,0,0,TimeSpan.Zero), DateTimeOffset(2013,03,16,0,0,0,TimeSpan.Zero), JsonValue.Null, pullRequest, None)
+                            JsonValue.Null, JsonValue.Null, 2, DateTimeOffset(2013,03,15,0,0,0,TimeSpan.Zero), DateTimeOffset(2013,03,16,0,0,0,TimeSpan.Zero), JsonValue.Null, pullRequest, "")
     json.JsonValue.ToString() |> normalize |> should equal (normalize """{
   "url": "url",
   "labels_url": "labelsUrl",
@@ -664,7 +676,7 @@ let ``Can construct complex objects``() =
     "diff_url": null,
     "patch_url": null
   },
-  "body": null
+  "body": ""
 }""")
 
 type HeterogeneousArray = JsonProvider<"""[8, 9, false, { "a": 3 }]""">
@@ -706,7 +718,7 @@ let ``Whitespace is preserved``() =
 [<Test>]
 let ``Getting a decimal at runtime when an integer was inferred should throw``() =
     let json = JsonProvider<"""{ "x" : 0.500, "y" : 0.000 }""">.Parse("""{ "x" : -0.250, "y" : 0.800 }""")
-    (fun () -> json.Y) |> shouldThrow "Expecting an Int32 at '/y', got 0.800"
+    (fun () -> json.Y) |> shouldThrow "Expecting value of type Int32 at '/y', got 0.800"
 
 [<Test>]
 let ``DateTime and DateTimeOffset mix results in DateTime`` () =
@@ -721,7 +733,7 @@ let ``Collection of DateTimeOffset should have the type DateTimeOffset`` () =
 [<Test>]
 let ``Getting a large decimal at runtime when an integer was inferred should throw``() =
     let json = JsonProvider<"""{ "x" : 0.500, "y" : 0.000 }""">.Parse("""{ "x" : -0.250, "y" : 12345678901234567890 }""")
-    (fun () -> json.Y) |> shouldThrow "Expecting an Int32 at '/y', got 12345678901234567890"
+    (fun () -> json.Y) |> shouldThrow "Expecting value of type Int32 at '/y', got 12345678901234567890"
 
 [<Test>]
 let ``ParseList return result list`` () =
