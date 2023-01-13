@@ -86,7 +86,7 @@ type InferedType =
 
     /// When allowEmptyValues is true, we allow "" and double.NaN, otherwise
     /// we make the type optional and use None instead.
-    /// It's currently only true in CsvProvider when PreferOptionals is set to false
+    /// It's currently only true in CsvProvider and HtmlProvider when PreferOptionals is set to false
     member x.EnsuresHandlesMissingValues allowEmptyValues =
         match x with
         | Null

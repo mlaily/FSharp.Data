@@ -9,6 +9,11 @@ open FSharp.Data.Runtime
 open FSharp.Data.Runtime.StructuralTypes
 open FSharp.Data.Runtime.StructuralInference
 
+let internal invariants =
+    { EmptyStringIsAMissingValue = true
+      MissingFloatsToNaN = true
+      MissingStringsToEmpty = true }
+
 /// This table specifies the mapping from (the names that users can use) to (the types used).
 /// The table here for the CsvProvider extends the mapping used for inline schemas by adding nullable and optionals.
 let private nameToTypeForCsv =

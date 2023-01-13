@@ -44,12 +44,24 @@ type internal XmlGenerationContext =
           JsonTypeCache = Dictionary() }
 
     member x.ConvertValue prop =
-        let typ, _, conv, _ = ConversionsGenerator.convertStringValue "" false false x.CultureStr prop
+        let typ, _, conv, _ =
+            ConversionsGenerator.convertStringValue
+                ""
+                XmlInference.invariants.MissingFloatsToNaN
+                XmlInference.invariants.MissingStringsToEmpty
+                x.CultureStr
+                prop
+
         typ, conv
 
     member x.ConvertValueBack prop =
         let typ, _, _, convBack =
-            ConversionsGenerator.convertStringValue "" false false x.CultureStr prop
+            ConversionsGenerator.convertStringValue
+                ""
+                XmlInference.invariants.MissingFloatsToNaN
+                XmlInference.invariants.MissingStringsToEmpty
+                x.CultureStr
+                prop
 
         typ, convBack
 

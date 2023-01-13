@@ -2,13 +2,18 @@
 // Implements type inference for JSON
 // --------------------------------------------------------------------------------------
 
-module ProviderImplementation.JsonInference
+module internal ProviderImplementation.JsonInference
 
 open System
 open FSharp.Data
 open FSharp.Data.Runtime
 open FSharp.Data.Runtime.StructuralTypes
 open FSharp.Data.Runtime.StructuralInference
+
+let invariants =
+    { EmptyStringIsAMissingValue = false
+      MissingFloatsToNaN = false
+      MissingStringsToEmpty = false }
 
 /// Infer type of a JSON value - this is a simple function because most of the
 /// functionality is handled in `StructureInference` (most notably, by
@@ -32,7 +37,13 @@ let rec internal inferType unitsOfMeasureProvider inferenceMode cultureInfo pare
     | JsonValue.Null -> InferedType.Null
     | JsonValue.Boolean _ -> InferedType.Primitive(typeof<bool>, None, false, false)
     | JsonValue.String s ->
-        StructuralInference.getInferedTypeFromString unitsOfMeasureProvider inferenceMode cultureInfo s None false
+        StructuralInference.getInferedTypeFromString
+            unitsOfMeasureProvider
+            inferenceMode
+            cultureInfo
+            s
+            None
+            invariants.EmptyStringIsAMissingValue
     // For numbers, we test if it is integer and if it fits in smaller range
     | JsonValue.Number 0M when shouldInferNonStringFromValue -> InferedType.Primitive(typeof<Bit0>, None, false, false)
     | JsonValue.Number 1M when shouldInferNonStringFromValue -> InferedType.Primitive(typeof<Bit1>, None, false, false)

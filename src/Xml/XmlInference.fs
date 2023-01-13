@@ -12,6 +12,11 @@ open FSharp.Data.Runtime
 open FSharp.Data.Runtime.StructuralInference
 open FSharp.Data.Runtime.StructuralTypes
 
+let invariants =
+    { EmptyStringIsAMissingValue = true
+      MissingFloatsToNaN = false
+      MissingStringsToEmpty = false }
+
 /// Takes a map and succeeds if it is empty
 let (|EmptyMap|_|) result (map: Map<_, _>) =
     if map.IsEmpty then Some result else None
@@ -30,11 +35,24 @@ let private getAttributes unitsOfMeasureProvider inferenceMode cultureInfo (elem
              && attr.Name.ToString() <> "xmlns" then
               yield
                   { Name = attr.Name.ToString()
-                    Type = getInferedTypeFromString unitsOfMeasureProvider inferenceMode cultureInfo attr.Value None true } ]
+                    Type =
+                      getInferedTypeFromString
+                          unitsOfMeasureProvider
+                          inferenceMode
+                          cultureInfo
+                          attr.Value
+                          None
+                          invariants.EmptyStringIsAMissingValue } ]
 
 let getInferedTypeFromValue unitsOfMeasureProvider inferenceMode cultureInfo (element: XElement) =
     let typ =
-        getInferedTypeFromString unitsOfMeasureProvider inferenceMode cultureInfo (element.Value) None true
+        getInferedTypeFromString
+            unitsOfMeasureProvider
+            inferenceMode
+            cultureInfo
+            (element.Value)
+            None
+            invariants.EmptyStringIsAMissingValue
 
     match inferenceMode with
     // Embedded json is not parsed when InferenceMode is NoInference

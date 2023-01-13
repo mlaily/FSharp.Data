@@ -38,6 +38,18 @@ type InferenceMode' =
         | InferenceMode.ValuesAndInlineSchemasOverrides -> InferenceMode'.ValuesAndInlineSchemasOverrides
         | _ -> failwithf "Unexpected inference mode value %A" inferenceMode
 
+/// Defines invariants for a given provider.
+type internal InferenceInvariants =
+    {
+        /// For this provider, should empty strings be considered the same way as a null or missing value?
+        /// This is generally true for providers that do not have a well-defined null value. (so all except json)
+        EmptyStringIsAMissingValue: bool
+        /// Should missing float values be converted to Double.NaN?
+        MissingFloatsToNaN: bool
+        /// Should missing strings be converted to ""?
+        MissingStringsToEmpty: bool
+    }
+
 [<Obsolete("This API will be made internal in a future release. Please file an issue at https://github.com/fsprojects/FSharp.Data/issues/1458 if you need this public.")>]
 let asOption inp =
     match inp with

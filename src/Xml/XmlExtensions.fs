@@ -7,7 +7,7 @@ open System.Xml.Linq
 open System.Runtime.InteropServices
 
 // XElementExtensions is not a static class with C#-style extension methods because that would
-// force to reference System.Xml.Linq.dll everytime you reference FSharp.Data, even when not using
+// force to reference System.Xml.Linq.dll every time you reference FSharp.Data, even when not using
 // any of the XML parts
 [<AutoOpen>]
 /// Extension methods for XElement
