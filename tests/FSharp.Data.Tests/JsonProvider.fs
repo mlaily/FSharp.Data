@@ -807,7 +807,7 @@ let ``Inline schemas are disabled by default and are recognized as strings`` () 
     sample[1].Length.String.GetType() |> should equal (typeof<string option>)
     sample[1].Length.Number.GetType() |> should equal (typeof<decimal option>)
     sample[1].Obj.Value.X.String.GetType() |> should equal (typeof<string option>)
-    sample[1].Obj.Value.X.Number.GetType() |> should equal (typeof<bool option>) // (There is probably a little but here. The property should be called Boolean)
+    sample[1].Obj.Value.X.Number.GetType() |> should equal (typeof<bool option>) // (There is probably a little bug here. The property should be called Boolean)
 
 [<Test>]
 let ``"No inference" mode disables type inference`` () =

@@ -397,6 +397,8 @@ type JsonRuntime =
         JsonDocument.Create(json, "")
 
     /// Creates a scalar JsonValue.Array and wraps it in a json document
+    /// elements is actually an obj[][]: an array of all the user-provided arrays from a ctor
+    /// (e.g [ [1;2;3] ; ["a";"b";"c"]  ] in the case of an array inferred to contain IntsOrStrings)
     static member CreateArray(elements: obj[], cultureStr) =
         let cultureInfo = TextRuntime.GetCulture cultureStr
 

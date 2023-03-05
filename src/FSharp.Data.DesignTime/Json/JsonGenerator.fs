@@ -132,12 +132,12 @@ module JsonTypeBuilder =
                           Type = normalize false inferedType })
                 // optional only affects the parent, so at top level always set to true regardless of the actual value
                 InferedType.Record(None, props, optional || topLevel)
-            | InferedType.Primitive (typ, unit, optional, shouldOverrideOnMerge) when
+            | InferedType.Primitive (typ, unit, optional, shouldOverrideOnMerge, originalType) when
                 typ = typeof<Bit0> || typ = typeof<Bit1>
                 ->
-                InferedType.Primitive(typeof<int>, unit, optional, shouldOverrideOnMerge)
-            | InferedType.Primitive (typ, unit, optional, shouldOverrideOnMerge) when typ = typeof<Bit> ->
-                InferedType.Primitive(typeof<bool>, unit, optional, shouldOverrideOnMerge)
+                InferedType.Primitive(typeof<int>, unit, optional, shouldOverrideOnMerge, originalType)
+            | InferedType.Primitive (typ, unit, optional, shouldOverrideOnMerge, originalType) when typ = typeof<Bit> ->
+                InferedType.Primitive(typeof<bool>, unit, optional, shouldOverrideOnMerge, originalType)
             | x -> x
 
         let inferedType = normalize true inferedType
@@ -205,7 +205,7 @@ module JsonTypeBuilder =
                     | InferedMultiplicity.OptionalSingle
                     | InferedMultiplicity.Single ->
                         match inferedType with
-                        | InferedType.Primitive (typ, _, _, _) ->
+                        | InferedType.Primitive (typ, _, _, _, _) ->
                             if typ = typeof<int>
                                || typ = typeof<Bit0>
                                || typ = typeof<Bit1> then
@@ -333,7 +333,7 @@ module JsonTypeBuilder =
 
         match inferedType with
 
-        | InferedType.Primitive (inferedType, unit, optional, _) ->
+        | InferedType.Primitive (inferedType, unit, optional, _, _) ->
 
             let typ, conv, conversionCallingType =
                 PrimitiveInferedValue.Create(inferedType, optional, unit)
@@ -397,6 +397,7 @@ module JsonTypeBuilder =
                 makeUnique "JsonValue" |> ignore
 
                 let inferedKeyValueType =
+
                     let aggr = List.fold (StructuralInference.subtypeInfered false) InferedType.Top
 
                     let dropRecordsNames infType =
@@ -636,6 +637,7 @@ module JsonTypeBuilder =
                                 )
 
                             let cultureStr = ctx.CultureStr
+
                             <@@ JsonRuntime.CreateRecord(%%properties, cultureStr) @@>
 
                         let ctor = ProvidedConstructor(parameters, invokeCode = ctorCode)
