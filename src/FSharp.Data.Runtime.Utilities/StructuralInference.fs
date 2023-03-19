@@ -318,6 +318,10 @@ let rec internal subtypeInfered allowEmptyValues ot1 ot2 =
 
 /// Given two heterogeneous types, get a single type that can represent all the
 /// types that the two heterogeneous types can.
+/// Heterogeneous types are intrinsically a list of options, so we drop
+/// optionality from all the inner types.
+/// We still retain whether some contained types were explicitly optional,
+/// to be able to re-apply the information on overriding types (from inline schemas).
 and private unionHeterogeneousTypes allowEmptyValues cases1 cases2 =
     let mutable containsOptional = false
 
