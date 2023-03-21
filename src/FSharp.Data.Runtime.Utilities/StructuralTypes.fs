@@ -142,7 +142,7 @@ type InferedType =
         originalType: PrimitiveType
     | Record of name: string option * fields: InferedProperty list * optional: InferedOptionality
     | Json of typ: InferedType * optional: InferedOptionality
-    | Collection of order: InferedTypeTag list * types: Map<InferedTypeTag, InferedMultiplicity * InferedType>
+    | Collection of order: InferedTypeTag list * types: Map<InferedTypeTag, InferedMultiplicity * InferedType> * optional: InferedOptionality
     | Heterogeneous of types: Map<InferedTypeTag, InferedType> * containsOptional: InferedOptionality
     | Null of kind: NullKind
     | Top
@@ -163,6 +163,7 @@ type InferedType =
     member x.EnsuresHandlesMissingValues allowEmptyValues nullKind =
         match x with
         | Null _
+        | Collection(optional = Optional NullKind.NullToken)
         | Heterogeneous(containsOptional = Optional _)
         | Primitive(optional = Optional _)
         | Record(optional = Optional _)
@@ -177,12 +178,18 @@ type InferedType =
             Primitive(typ, unit, Optional nullKind, overrideOnMerge, originalType)
         | Record (name, props, Mandatory) -> Record(name, props, Optional nullKind)
         | Json (typ, Mandatory) -> Json(typ, Optional nullKind)
-        | Collection (order, types) ->
-            let typesR =
-                types
-                |> Map.map (fun _ (mult, typ) -> (if mult = Single then OptionalSingle else mult), typ)
+        | Collection (order, types, optional) ->
+            // The case of a collection that can already be a null token is handled above.
+            assert (optional = Mandatory || optional = Optional NullKind.NoValue)
 
-            Collection(order, typesR)
+            match nullKind with
+            | NullKind.NullToken -> Collection(order, types, Optional nullKind)
+            | NullKind.NoValue ->
+                let typesR =
+                    types
+                    |> Map.map (fun _ (mult, typ) -> (if mult = Single then OptionalSingle else mult), typ)
+
+                Collection(order, typesR, Mandatory)
         | Top -> failwith "EnsuresHandlesMissingValues: unexpected InferedType.Top"
 
     member x.GetDropOptionality() =
@@ -204,16 +211,16 @@ type InferedType =
         if y :? InferedType then
             match x, y :?> InferedType with
             | a, b when Object.ReferenceEquals(a, b) -> true
-            | Primitive (t1, u1, b1, x1, ot1), Primitive (t2, u2, b2, x2, ot2) ->
+            | Primitive (t1, u1, opt1, x1, ot1), Primitive (t2, u2, opt2, x2, ot2) ->
                 t1 = t2
                 && u1 = u2
-                && b1 = b2
+                && opt1 = opt2
                 && x1 = x2
                 && ot1 = ot2
-            | Record (s1, pl1, b1), Record (s2, pl2, b2) -> s1 = s2 && pl1 = pl2 && b1 = b2
-            | Json (t1, o1), Json (t2, o2) -> t1 = t2 && o1 = o2
-            | Collection (o1, t1), Collection (o2, t2) -> o1 = o2 && t1 = t2
-            | Heterogeneous (m1, o1), Heterogeneous (m2, o2) -> m1 = m2 && o1 = o2
+            | Record (s1, pl1, opt1), Record (s2, pl2, opt2) -> s1 = s2 && pl1 = pl2 && opt1 = opt2
+            | Json (t1, opt1), Json (t2, opt2) -> t1 = t2 && opt1 = opt2
+            | Collection (o1, t1, opt1), Collection (o2, t2, opt2) -> o1 = o2 && t1 = t2 && opt1 = opt2
+            | Heterogeneous (m1, opt1), Heterogeneous (m2, opt2) -> m1 = m2 && opt1 = opt2
             | Null k1, Null k2 -> k1 = k2
             | Top, Top -> true
             | _ -> false
@@ -261,13 +268,13 @@ type InferedType =
                 indented ($"{{Json Optional: {opt}") |> ignore
                 walk iTyp
                 indented ("}") |> ignore
-            | Collection (order, types) ->
+            | Collection (order, types, optional) ->
                 let inOrder order types =
                     types
                     |> Map.toList
                     |> List.sortBy (fun (tag, _) -> List.findIndex ((=) tag) order)
 
-                indented ($"[*Array*") |> ignore
+                indented ($"[*Array* Optional: {optional}") |> ignore
                 pushIndent ()
 
                 for (typTag, (multiplicity, inferedType)) in inOrder order types do

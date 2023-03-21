@@ -119,10 +119,11 @@ module JsonTypeBuilder =
                 map
                 |> Map.map (fun _ inferedType -> normalize false inferedType)
                 |> (fun x -> InferedType.Heterogeneous(x, Mandatory))
-            | InferedType.Collection (order, types) ->
+            | InferedType.Collection (order, types, optional) ->
                 InferedType.Collection(
                     order,
-                    Map.map (fun _ (multiplicity, inferedType) -> multiplicity, normalize false inferedType) types
+                    Map.map (fun _ (multiplicity, inferedType) -> multiplicity, normalize false inferedType) types,
+                    optional
                 )
             | InferedType.Record (_, props, optional) ->
                 let props =
@@ -324,10 +325,11 @@ module JsonTypeBuilder =
 
         let inferedType =
             match inferedType with
-            | InferedType.Collection (order, types) ->
+            | InferedType.Collection (order, types, optional) ->
                 InferedType.Collection(
                     List.filter ((<>) InferedTypeTag.Null) order,
-                    Map.remove InferedTypeTag.Null types
+                    Map.remove InferedTypeTag.Null types,
+                    optional
                 )
             | x -> x
 
@@ -351,8 +353,8 @@ module JsonTypeBuilder =
               OptionalConverter = None
               ConversionCallingType = JsonDocument }
 
-        | InferedType.Collection (_, SingletonMap (_, (_, typ)))
-        | InferedType.Collection (_, EmptyMap InferedType.Top typ) ->
+        | InferedType.Collection (_, SingletonMap (_, (_, typ)), _)
+        | InferedType.Collection (_, EmptyMap InferedType.Top typ, _) ->
 
             let elementResult = generateJsonType ctx false false nameOverride typ
 
@@ -415,7 +417,7 @@ module JsonTypeBuilder =
                         let infType = dropRecordName infType
 
                         match infType with
-                        | InferedType.Collection (order, types) ->
+                        | InferedType.Collection (order, types, optional) ->
                             // Records in collections have the parent property as name.
                             // We drop it too so they can be merged into a unified type.
                             let order = order |> List.map dropTagName
@@ -429,7 +431,7 @@ module JsonTypeBuilder =
                                     tag, (multiplicity, typ))
                                 |> Map.ofSeq
 
-                            InferedType.Collection(order, types)
+                            InferedType.Collection(order, types, optional)
                         | _ -> infType
 
                     if not ctx.PreferDictionaries then
@@ -657,7 +659,7 @@ module JsonTypeBuilder =
 
                 objectTy)
 
-        | InferedType.Collection (_, types) ->
+        | InferedType.Collection (_, types, _) ->
             getOrCreateType ctx inferedType (fun () ->
 
                 // Generate a choice type that calls either `GetArrayChildrenByTypeTag`

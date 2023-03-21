@@ -130,7 +130,7 @@ let inferGlobalType unitsOfMeasureProvider inferenceMode cultureInfo allowEmptyV
 
                 let bodyType =
                     match childrenType with
-                    | InferedType.Collection (_, EmptyMap () _) -> body.Type
+                    | InferedType.Collection (_, EmptyMap () _, _) -> body.Type
                     | childrenType -> subtypeInfered allowEmptyValues childrenType body.Type
 
                 changed <- changed || body.Type <> bodyType

@@ -326,7 +326,7 @@ module internal XsdInference =
                                 |> Seq.zip tags
                                 |> Map.ofSeq
 
-                            InferedType.Collection(tags, types)
+                            InferedType.Collection(tags, types, Mandatory)
 
                     result
 

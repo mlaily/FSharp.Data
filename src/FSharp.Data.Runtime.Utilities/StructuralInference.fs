@@ -236,11 +236,12 @@ let rec internal subtypeInfered allowEmptyValues ot1 ot2 =
             let map, containsOptional = unionHeterogeneousTypes allowEmptyValues t1 t2
             map |> Map.ofList, InferedOptionality.Merge(containsOptional, InferedOptionality.Merge(o1, o2))
         )
-    | InferedType.Collection (o1, t1), InferedType.Collection (o2, t2) ->
+    | InferedType.Collection (o1, t1, opt1), InferedType.Collection (o2, t2, opt2) ->
         InferedType.Collection(
             unionCollectionOrder o1 o2,
             unionCollectionTypes allowEmptyValues t1 t2
-            |> Map.ofList
+            |> Map.ofList,
+            InferedOptionality.Merge(opt1, opt2)
         )
 
     // Top type can be merged with anything else
@@ -403,7 +404,7 @@ let internal inferCollectionType allowEmptyValues types =
             tag, (multiple, Seq.fold (subtypeInfered allowEmptyValues) InferedType.Top types))
         |> Seq.toList
 
-    InferedType.Collection(List.map fst groupedTypes, Map.ofList groupedTypes)
+    InferedType.Collection(List.map fst groupedTypes, Map.ofList groupedTypes, Mandatory)
 
 [<Obsolete("This API will be made internal in a future release. Please file an issue at https://github.com/fsprojects/FSharp.Data/issues/1458 if you need this public.")>]
 type IUnitsOfMeasureProvider =

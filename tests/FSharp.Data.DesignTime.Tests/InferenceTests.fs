@@ -16,7 +16,7 @@ open ProviderImplementation
 
 /// A collection containing just one type
 let internal SimpleCollection typ =
-  InferedType.Collection([ typeTag typ], Map.ofSeq [typeTag typ, (InferedMultiplicity.Multiple, typ)])
+  InferedType.Collection([ typeTag typ], Map.ofSeq [typeTag typ, (InferedMultiplicity.Multiple, typ)], Mandatory)
 
 let culture = TextRuntime.GetCulture ""
 let internal inferenceMode = InferenceMode'.ValuesOnly
@@ -66,7 +66,8 @@ let ``Infers heterogeneous type of InferedType.Primitives``() =
     InferedType.Collection
         ([ InferedTypeTag.Number; InferedTypeTag.Boolean ],
          [ InferedTypeTag.Number, (Single, InferedType.Primitive(typeof<Bit1>, None, Mandatory, false, PrimitiveType.Number))
-           InferedTypeTag.Boolean, (Single, InferedType.Primitive(typeof<bool>, None, Mandatory, false, PrimitiveType.Bool)) ] |> Map.ofList)
+           InferedTypeTag.Boolean, (Single, InferedType.Primitive(typeof<bool>, None, Mandatory, false, PrimitiveType.Bool)) ] |> Map.ofList,
+           Mandatory)
   let actual = JsonInference.inferType unitsOfMeasureProvider inferenceMode culture "" source
   actual |> should equal expected
 
@@ -78,7 +79,8 @@ let ``Infers heterogeneous type of InferedType.Primitives and nulls``() =
         ([ InferedTypeTag.Number; InferedTypeTag.Boolean; InferedTypeTag.Null ],
          [ InferedTypeTag.Null, (Single, InferedType.Null NullKind.NoValue) // NullKind.NullToken if we didn't want backward compat
            InferedTypeTag.Number, (Single, InferedType.Primitive(typeof<Bit1>, None, Mandatory, false, PrimitiveType.Number))
-           InferedTypeTag.Boolean, (Single, InferedType.Primitive(typeof<bool>, None, Mandatory, false, PrimitiveType.Bool)) ] |> Map.ofList)
+           InferedTypeTag.Boolean, (Single, InferedType.Primitive(typeof<bool>, None, Mandatory, false, PrimitiveType.Bool)) ] |> Map.ofList,
+           Mandatory)
   let actual = JsonInference.inferType unitsOfMeasureProvider inferenceMode culture "" source
   actual |> should equal expected
 
@@ -97,7 +99,8 @@ let ``Infers heterogeneous type of InferedType.Primitives and records``() =
         ([ InferedTypeTag.Record None; InferedTypeTag.Number ],
          [ InferedTypeTag.Number, (Multiple, InferedType.Primitive(typeof<int>, None, Mandatory, false, PrimitiveType.Number))
            InferedTypeTag.Record None,
-             (Single, toRecord [ { Name="a"; Type=InferedType.Primitive(typeof<Bit0>, None, Mandatory, false, PrimitiveType.Number) } ]) ] |> Map.ofList)
+             (Single, toRecord [ { Name="a"; Type=InferedType.Primitive(typeof<Bit0>, None, Mandatory, false, PrimitiveType.Number) } ]) ] |> Map.ofList,
+             Mandatory)
   let actual = JsonInference.inferType unitsOfMeasureProvider inferenceMode culture "" source
   actual |> should equal expected
 
@@ -194,7 +197,8 @@ let ``Inference of multiple nulls works``() =
     InferedType.Collection
         ([ InferedTypeTag.Number; InferedTypeTag.Collection ],
          [ InferedTypeTag.Collection, (Single, SimpleCollection(toRecord [prop]))
-           InferedTypeTag.Number, (Single, InferedType.Primitive(typeof<Bit0>, None, Mandatory, false, PrimitiveType.Number)) ] |> Map.ofList)
+           InferedTypeTag.Number, (Single, InferedType.Primitive(typeof<Bit0>, None, Mandatory, false, PrimitiveType.Number)) ] |> Map.ofList,
+           Mandatory)
   let actual = JsonInference.inferType unitsOfMeasureProvider inferenceMode culture "" source
   actual |> should equal expected
 
@@ -367,7 +371,8 @@ let ``Doesn't infer 12-002 as a date``() =
     InferedType.Collection
         ([ InferedTypeTag.String; InferedTypeTag.Number],
          [ InferedTypeTag.String, (Multiple, InferedType.Primitive(typeof<string>, None, Mandatory, false, PrimitiveType.String))
-           InferedTypeTag.Number, (Single, InferedType.Primitive(typeof<Bit1>, None, Mandatory, false, PrimitiveType.String)) ] |> Map.ofList)
+           InferedTypeTag.Number, (Single, InferedType.Primitive(typeof<Bit1>, None, Mandatory, false, PrimitiveType.String)) ] |> Map.ofList,
+           Mandatory)
   let actual = JsonInference.inferType unitsOfMeasureProvider inferenceMode culture "" source
   actual |> should equal expected
 
