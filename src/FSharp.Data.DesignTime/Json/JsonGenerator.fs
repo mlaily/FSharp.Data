@@ -123,7 +123,7 @@ module JsonTypeBuilder =
     let internal findOriginalPrimitiveType inferedType =
         let (|SingleTypeCollection|_|) =
             function
-            | InferedType.Collection ([ singleTag ], types) ->
+            | InferedType.Collection ([ singleTag ], types, _) ->
                 let _, singleType = types[singleTag]
                 Some singleType
             | _ -> None
@@ -143,10 +143,11 @@ module JsonTypeBuilder =
                 map
                 |> Map.map (fun _ inferedType -> normalize false inferedType)
                 |> (fun x -> InferedType.Heterogeneous(x, Mandatory))
-            | InferedType.Collection (order, types) ->
+            | InferedType.Collection (order, types, optional) ->
                 InferedType.Collection(
                     order,
-                    Map.map (fun _ (multiplicity, inferedType) -> multiplicity, normalize false inferedType) types
+                    Map.map (fun _ (multiplicity, inferedType) -> multiplicity, normalize false inferedType) types,
+                    optional
                 )
             | InferedType.Record (_, props, optional) ->
                 let props =
@@ -197,6 +198,7 @@ module JsonTypeBuilder =
     let rec internal generateMultipleChoiceType
         ctx
         types
+        optional // TODO: use this to allow generating null values when relevant
         forCollection
         nameOverride
         (codeGenerator: _ -> _ -> _ -> _ -> Expr)
@@ -354,10 +356,11 @@ module JsonTypeBuilder =
 
         let inferedType =
             match inferedType with
-            | InferedType.Collection (order, types) ->
+            | InferedType.Collection (order, types, optional) ->
                 InferedType.Collection(
                     List.filter ((<>) InferedTypeTag.Null) order,
-                    Map.remove InferedTypeTag.Null types
+                    Map.remove InferedTypeTag.Null types,
+                    optional
                 )
             | x -> x
 
@@ -381,8 +384,11 @@ module JsonTypeBuilder =
               OptionalConverter = None
               ConversionCallingType = JsonDocument }
 
-        | InferedType.Collection (_, SingletonMap (_, (_, typ)))
-        | InferedType.Collection (_, EmptyMap InferedType.Top typ) ->
+        | InferedType.Collection (_, SingletonMap (_, (_, typ)), optional)
+        | InferedType.Collection (_, EmptyMap InferedType.Top typ, optional) ->
+
+            if optional.IsOptional && not optionalityHandledByParent then
+                failwithf "generateJsonType: optionality not handled for %A" inferedType
 
             let elementResult = generateJsonType ctx false false nameOverride typ
 
@@ -445,7 +451,7 @@ module JsonTypeBuilder =
                         let infType = dropRecordName infType
 
                         match infType with
-                        | InferedType.Collection (order, types) ->
+                        | InferedType.Collection (order, types, optional) ->
                             // Records in collections have the parent property as name.
                             // We drop it too so they can be merged into a unified type.
                             let order = order |> List.map dropTagName
@@ -459,7 +465,7 @@ module JsonTypeBuilder =
                                     tag, (multiplicity, typ))
                                 |> Map.ofSeq
 
-                            InferedType.Collection(order, types)
+                            InferedType.Collection(order, types, optional)
                         | _ -> infType
 
                     if not ctx.PreferDictionaries then
@@ -710,12 +716,12 @@ module JsonTypeBuilder =
 
                 objectTy)
 
-        | InferedType.Collection (_, types) ->
+        | InferedType.Collection (_, types, optional) ->
             getOrCreateType ctx inferedType (fun () ->
 
                 // Generate a choice type that calls either `GetArrayChildrenByTypeTag`
                 // or `GetArrayChildByTypeTag`, depending on the multiplicity of the item
-                generateMultipleChoiceType ctx types true nameOverride (fun multiplicity result tagCode ->
+                generateMultipleChoiceType ctx types optional true nameOverride (fun multiplicity result tagCode ->
                     match multiplicity with
                     | InferedMultiplicity.Single ->
                         fun (Singleton jDoc) ->
@@ -743,7 +749,7 @@ module JsonTypeBuilder =
                                 (result.ConvertedTypeErased ctx)
                                 (jDoc, cultureStr, tagCode, result.ConverterFunc ctx)))
 
-        | InferedType.Heterogeneous (types, _) ->
+        | InferedType.Heterogeneous (types, optional) ->
             getOrCreateType ctx inferedType (fun () ->
 
                 // Generate a choice type that always calls `TryGetValueByTypeTag`
@@ -751,7 +757,7 @@ module JsonTypeBuilder =
                     types
                     |> Map.map (fun _ v -> InferedMultiplicity.OptionalSingle, v)
 
-                generateMultipleChoiceType ctx types false nameOverride (fun multiplicity result tagCode ->
+                generateMultipleChoiceType ctx types optional false nameOverride (fun multiplicity result tagCode ->
                     fun (Singleton jDoc) ->
                         assert (multiplicity = InferedMultiplicity.OptionalSingle)
                         let cultureStr = ctx.CultureStr

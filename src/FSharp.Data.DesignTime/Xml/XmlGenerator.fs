@@ -79,14 +79,14 @@ module internal XmlTypeBuilder =
 
         match inferedProp with
         | { Type = (InferedType.Primitive _ | InferedType.Json _) as typ } -> Some([ typ ], [])
-        | { Type = InferedType.Collection (order, types) } -> Some([], inOrder order types)
+        | { Type = InferedType.Collection (order, types, _) } -> Some([], inOrder order types)
         | { Type = InferedType.Heterogeneous (cases, _) } ->
             let collections, others =
                 Map.toList cases
                 |> List.partition (fst >> (=) InferedTypeTag.Collection)
 
             match collections with
-            | [ InferedTypeTag.Collection, InferedType.Collection (order, types) ] ->
+            | [ InferedTypeTag.Collection, InferedType.Collection (order, types, _) ] ->
                 Some(List.map snd others, inOrder order types)
             | [] -> Some(List.map snd others, [])
             | _ -> failwith "(|ContentType|_|): Only one collection type expected"
@@ -443,7 +443,7 @@ module internal XmlTypeBuilder =
                                                                                                           (_,
                                                                                                            InferedType.Record (Some childNameWithNS2,
                                                                                                                                _,
-                                                                                                                               Mandatory) as multiplicityAndType))) } ],
+                                                                                                                               Mandatory) as multiplicityAndType)), _) } ],
                                                          Mandatory)) when
                                       parentNameWithNS = parentNameWithNS2
                                       && childNameWithNS = childNameWithNS2
