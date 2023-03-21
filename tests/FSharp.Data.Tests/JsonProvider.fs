@@ -149,7 +149,7 @@ let ``Optional collections correctly handled when missing``() =
     |> Seq.choose (fun tweet -> tweet.RetweetedStatus)
     |> Seq.map (fun retweetedStatus -> retweetedStatus.Entities.Media)
     |> Seq.toList
-    |> List.partition ((=) [| |])
+    |> List.partition ((=) None)
   withMedia.Length |> should equal 1
   withoutMedia.Length |> should equal 9
 
@@ -595,8 +595,8 @@ let ``Can parse nested arrays``() =
 [<Test>]
 let ``Can parse optional arrays``() =
     let j = JsonProvider<"Data/contacts.json">.GetSample()
-    j.Ab.Persons.[0].Contacts.[0].Emails |> should equal [| |]
-    j.Ab.Persons.[0].Contacts.[1].Emails.Length |> should equal 1
+    j.Ab.Persons.[0].Contacts.[0].Emails |> should equal None
+    j.Ab.Persons.[0].Contacts.[1].Emails.Value.Length |> should equal 1
 
 let normalize (str:string) =
   str.Replace("\r\n", "\n")

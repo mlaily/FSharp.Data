@@ -218,7 +218,7 @@ module JsonTypeBuilder =
             | InferedType.Null _
             | InferedType.Top
             | InferedType.Heterogeneous _ -> failwithf "generateMultipleChoiceType: Unsupported type: %A" inferedType
-            | x when x.IsOptional -> failwithf "generateMultipleChoiceType: Type shouldn't be optional: %A" inferedType
+            | x when x.IsExplicitlyOptional -> failwithf "generateMultipleChoiceType: Type shouldn't be optional: %A" inferedType
             | _ -> ()
 
         let typeName =
@@ -627,7 +627,7 @@ module JsonTypeBuilder =
                                          else
                                              <@@ JsonRuntime.TryGetPropertyUnpacked(%%jDoc, propName) @@>
 
-                                  elif prop.Type.IsOptional then
+                                  elif prop.Type.IsExplicitlyOptional then
 
                                       match propResult.OptionalConverter with
                                       | Some _ ->
@@ -650,7 +650,7 @@ module JsonTypeBuilder =
                                          | _ -> <@@ JsonRuntime.GetPropertyPacked(%%jDoc, propName) @@>
 
                               let convertedType =
-                                  if prop.Type.IsOptional
+                                  if prop.Type.IsExplicitlyOptional
                                      && not optionalityHandledByProperty then
                                       ctx.MakeOptionType propResult.ConvertedType
                                   else
@@ -658,19 +658,11 @@ module JsonTypeBuilder =
 
                               let name = makeUnique prop.Name
 
-                              let getInferedOptionality inferedType =
-                                match inferedType with
-                                | InferedType.Primitive (_, _, opt, _, _) -> opt
-                                | InferedType.Record (_, _, opt) -> opt
-                                | InferedType.Heterogeneous (_, opt) -> opt
-                                | InferedType.Null opt -> Optional opt
-                                | _ -> Mandatory
-
                               prop.Name,
                               ProvidedProperty(name, convertedType, getterCode = getter),
                               ProvidedParameter(NameUtils.niceCamelName name, replaceJDocWithJValue ctx convertedType),
                               findOriginalPrimitiveType prop.Type,
-                              getInferedOptionality prop.Type ]
+                              prop.Type.GetOptionality() ]
 
                     let names, properties, parameters, originalPrimitiveTypes, optionality = List.unzip5 members
 

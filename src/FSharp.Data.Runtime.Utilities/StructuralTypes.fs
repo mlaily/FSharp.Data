@@ -87,6 +87,12 @@ type NullKind =
     | NoValue
     | NullToken
 
+    static member Merge(k1, k2) =
+        match k1, k2 with
+        | NullKind.NoValue, NullKind.NoValue -> NullKind.NoValue
+        | NullKind.NullToken, _
+        | _, NullKind.NullToken -> NullKind.NullToken // when we have a null token, it takes precedence
+
 [<Obsolete("This API will be made internal in a future release. Please file an issue at https://github.com/fsprojects/FSharp.Data/issues/1458 if you need this public.")>]
 [<DefaultAugmentation(false)>]
 type InferedOptionality =
@@ -108,11 +114,7 @@ type InferedOptionality =
         | Mandatory, Mandatory -> Mandatory
         | Optional k, Mandatory
         | Mandatory, Optional k -> Optional k
-        | Optional k1, Optional k2 ->
-            match k1, k2 with
-            | NullKind.NoValue, NullKind.NoValue -> Optional NullKind.NoValue
-            | NullKind.NullToken, _
-            | _, NullKind.NullToken -> Optional NullKind.NullToken // when we have a null token, it takes precedence
+        | Optional k1, Optional k2 -> Optional (NullKind.Merge(k1, k2))
 
 /// Represents inferred structural type. A type may be either primitive type
 /// (one of those listed by `primitiveTypes`) or it can be collection,
@@ -142,19 +144,26 @@ type InferedType =
         originalType: PrimitiveType
     | Record of name: string option * fields: InferedProperty list * optional: InferedOptionality
     | Json of typ: InferedType * optional: InferedOptionality
-    /// `optional` for collections is only useful when the collection can explicitly be a null token.
-    /// (It can be ignored when the underlying representation doesn't have null tokens, like e.g. for xml)
     | Collection of order: InferedTypeTag list * types: Map<InferedTypeTag, InferedMultiplicity * InferedType> * optional: InferedOptionality
     | Heterogeneous of types: Map<InferedTypeTag, InferedType> * containsOptional: InferedOptionality
     | Null of kind: NullKind
     | Top
 
-    member x.IsOptional =
+    member this.GetOptionality() =
+        match this with
+        | Primitive (_, _, opt, _, _)
+        | Record (_, _, opt)
+        | Json (_, opt)
+        | Collection (_, _, opt)
+        | Heterogeneous (_, opt) -> opt
+        | _ -> Mandatory
+
+    /// Should the generated type be wrapped in an option?
+    member x.IsExplicitlyOptional =
         match x with
-        | Primitive(optional = Optional _)
-        | Record(optional = Optional _)
-        | Json(optional = Optional _) -> true
-        | _ -> false
+        // Heterogeneous are already intrinsically a list of options.
+        | Heterogeneous _ -> false
+        | _ -> x.GetOptionality().IsOptional
 
     static member CanHaveEmptyValues typ =
         typ = typeof<string> || typ = typeof<float>
@@ -164,43 +173,32 @@ type InferedType =
     /// It's currently only true in CsvProvider when PreferOptionals is set to false
     member x.EnsuresHandlesMissingValues allowEmptyValues nullKind =
         match x with
-        | Null _
-        | Collection(optional = Optional NullKind.NullToken)
-        | Heterogeneous(containsOptional = Optional _)
-        | Primitive(optional = Optional _)
-        | Record(optional = Optional _)
-        | Json(optional = Optional _) -> x
         | Primitive (typ, _, Mandatory, _, _) when
             allowEmptyValues
             && InferedType.CanHaveEmptyValues typ
-            ->
-            x
-        | Heterogeneous (map, Mandatory) -> Heterogeneous(map, Optional nullKind)
-        | Primitive (typ, unit, Mandatory, overrideOnMerge, originalType) ->
-            Primitive(typ, unit, Optional nullKind, overrideOnMerge, originalType)
-        | Record (name, props, Mandatory) -> Record(name, props, Optional nullKind)
-        | Json (typ, Mandatory) -> Json(typ, Optional nullKind)
+            -> x
+        | Null k -> Null (NullKind.Merge(k, nullKind))
+        | Primitive (typ, unit, optional, overrideOnMerge, originalType) ->
+            Primitive(typ, unit, InferedOptionality.Merge(optional, Optional nullKind), overrideOnMerge, originalType)
+        | Record (name, props, optional) -> Record(name, props, InferedOptionality.Merge(optional, Optional nullKind))
+        | Json (typ, optional) -> Json(typ, InferedOptionality.Merge(optional, Optional nullKind))
+        | Heterogeneous (map, containsOptional) -> Heterogeneous(map, InferedOptionality.Merge(containsOptional, Optional nullKind))
         | Collection (order, types, optional) ->
-            // The case of a collection that can already be a null token is handled above.
-            assert (optional = Mandatory || optional = Optional NullKind.NoValue)
+            let typesR =
+                types
+                |> Map.map (fun _ (mult, typ) -> (if mult = Single then OptionalSingle else mult), typ)
 
-            match nullKind with
-            | NullKind.NullToken -> Collection(order, types, Optional nullKind)
-            | NullKind.NoValue ->
-                let typesR =
-                    types
-                    |> Map.map (fun _ (mult, typ) -> (if mult = Single then OptionalSingle else mult), typ)
-
-                Collection(order, typesR, Mandatory)
+            Collection(order, typesR, InferedOptionality.Merge(optional, Optional nullKind))
         | Top -> failwith "EnsuresHandlesMissingValues: unexpected InferedType.Top"
 
     member x.GetDropOptionality() =
         match x with
-        | Primitive (typ, unit, Optional _, overrideOnMerge, originalType) ->
-            Primitive(typ, unit, Mandatory, overrideOnMerge, originalType), Optional NullKind.NoValue
-        | Record (name, props, Optional _) -> Record(name, props, Mandatory), Optional NullKind.NoValue
-        | Json (typ, Optional _) -> Json(typ, Mandatory), Optional NullKind.NoValue
-        | Heterogeneous (map, Optional _) -> Heterogeneous(map, Mandatory), Optional NullKind.NoValue
+        | Primitive (typ, unit, Optional k, overrideOnMerge, originalType) ->
+            Primitive(typ, unit, Mandatory, overrideOnMerge, originalType), Optional k
+        | Record (name, props, Optional k) -> Record(name, props, Mandatory), Optional k
+        | Json (typ, Optional k) -> Json(typ, Mandatory), Optional k
+        | Heterogeneous (map, Optional k) -> Heterogeneous(map, Mandatory), Optional k
+        | Collection (order, types, Optional k) -> Collection(order, types, Mandatory), Optional k
         | _ -> x, Mandatory
 
     member x.DropOptionality() = x.GetDropOptionality() |> fst
