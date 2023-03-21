@@ -115,6 +115,10 @@ module JsonTypeBuilder =
             let a, b, cd = List.unzip3 (List.map (fun (a, b, c, d) -> (a, b, (c, d))) l)
             let c, d = List.unzip cd
             a, b, c, d
+        let unzip5 l =
+            let a, b, cde = List.unzip3 (List.map (fun (a, b, c, d, e) -> (a, b, (c, d, e))) l)
+            let c, d, e = List.unzip3 cde
+            a, b, c, d, e
 
     let internal findOriginalPrimitiveType inferedType =
         let (|SingleTypeCollection|_|) =
@@ -648,12 +652,21 @@ module JsonTypeBuilder =
 
                               let name = makeUnique prop.Name
 
+                              let getInferedOptionality inferedType =
+                                match inferedType with
+                                | InferedType.Primitive (_, _, opt, _, _) -> opt
+                                | InferedType.Record (_, _, opt) -> opt
+                                | InferedType.Heterogeneous (_, opt) -> opt
+                                | InferedType.Null opt -> Optional opt
+                                | _ -> Mandatory
+
                               prop.Name,
                               ProvidedProperty(name, convertedType, getterCode = getter),
                               ProvidedParameter(NameUtils.niceCamelName name, replaceJDocWithJValue ctx convertedType),
-                              findOriginalPrimitiveType prop.Type ]
+                              findOriginalPrimitiveType prop.Type,
+                              getInferedOptionality prop.Type ]
 
-                    let names, properties, parameters, originalPrimitiveTypes = List.unzip4 members
+                    let names, properties, parameters, originalPrimitiveTypes, optionality = List.unzip5 members
 
                     objectTy.AddMembers properties
 
@@ -661,7 +674,7 @@ module JsonTypeBuilder =
                         let ctorCode (args: Expr list) =
                             let properties =
                                 Expr.NewArray(
-                                    typeof<string * obj * int>,
+                                    typeof<string * obj * int * bool>,
                                     args
                                     |> List.mapi (fun i a ->
                                         let name = names[i]
@@ -670,7 +683,12 @@ module JsonTypeBuilder =
                                             originalPrimitiveTypes[i] |> PrimitiveType.ToInt
 
                                         let arg = Expr.Coerce(a, typeof<obj>)
-                                        <@@ (name, %%arg, serializedOriginalPrimitiveType) @@>)
+                                        let doNotWriteNulls =
+                                            match optionality[i] with
+                                            | Mandatory -> false
+                                            | Optional NullKind.NullToken -> false
+                                            | Optional NullKind.NoValue -> true
+                                        <@@ (name, %%arg, serializedOriginalPrimitiveType, doNotWriteNulls) @@>)
                                 )
 
                             let cultureStr = ctx.CultureStr

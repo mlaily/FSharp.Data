@@ -399,8 +399,10 @@ type JsonRuntime =
 
         let json =
             properties
-            |> Array.map (fun (k, v: obj, originalType) ->
-                k, JsonRuntime.ToJsonValue cultureInfo (originalType |> PrimitiveType.FromInt) v)
+            |> Array.choose (fun (k, v: obj, originalType, doNotWriteNulls) ->
+                let jvalue = JsonRuntime.ToJsonValue cultureInfo (originalType |> PrimitiveType.FromInt) v
+                if doNotWriteNulls && jvalue = JsonValue.Null then None
+                else Some (k, jvalue))
             |> JsonValue.Record
 
         JsonDocument.Create(json, "")
