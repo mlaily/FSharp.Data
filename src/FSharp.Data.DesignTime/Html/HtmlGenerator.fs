@@ -147,7 +147,7 @@ module internal HtmlGenerator =
                     ConversionsGenerator.convertStringValue
                         missingValuesStr
                         cultureStr
-                        (StructuralTypes.PrimitiveInferedProperty.Create("", typeof<string>, false, None))
+                        (StructuralTypes.PrimitiveInferedProperty.Create("", typeof<string>, Mandatory, None))
 
                 typ, conv
 
@@ -209,7 +209,7 @@ module internal HtmlGenerator =
                         ConversionsGenerator.convertStringValue
                             missingValuesStr
                             cultureStr
-                            (StructuralTypes.PrimitiveInferedProperty.Create("", typeof<String>, false, None))
+                            (StructuralTypes.PrimitiveInferedProperty.Create("", typeof<String>, Mandatory, None))
 
                     typ, conv
 

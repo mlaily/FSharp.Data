@@ -29,8 +29,8 @@ let rec internal inferType unitsOfMeasureProvider inferenceMode cultureInfo pare
 
     match json with
     // Null and primitives without subtyping hierarchies
-    | JsonValue2.Null -> InferedType.Null
-    | JsonValue2.Boolean _ -> InferedType.Primitive(typeof<bool>, None, false, false, PrimitiveType.Bool)
+    | JsonValue2.Null -> InferedType.Null NullKind.NullToken
+    | JsonValue2.Boolean _ -> InferedType.Primitive(typeof<bool>, None, Mandatory, false, PrimitiveType.Bool)
     | JsonValue2.String s ->
         StructuralInference.inferPrimitiveType unitsOfMeasureProvider inferenceMode cultureInfo s None false BooleanParsing.Strict
     // For numbers, we test if it is integer and if it fits in smaller range
@@ -39,27 +39,27 @@ let rec internal inferType unitsOfMeasureProvider inferenceMode cultureInfo pare
         && inRangeDecimal Int32.MinValue Int32.MaxValue n
         && isIntegerDecimal n
         ->
-        InferedType.Primitive(typeof<int>, None, false, false, PrimitiveType.Number)
+        InferedType.Primitive(typeof<int>, None, Mandatory, false, PrimitiveType.Number)
     | JsonValue2.Number n when
         shouldInferNonStringFromValue
         && inRangeDecimal Int64.MinValue Int64.MaxValue n
         && isIntegerDecimal n
         ->
-        InferedType.Primitive(typeof<int64>, None, false, false, PrimitiveType.Number)
-    | JsonValue2.Number _ -> InferedType.Primitive(typeof<decimal>, None, false, false, PrimitiveType.Number)
+        InferedType.Primitive(typeof<int64>, None, Mandatory, false, PrimitiveType.Number)
+    | JsonValue2.Number _ -> InferedType.Primitive(typeof<decimal>, None, Mandatory, false, PrimitiveType.Number)
     | JsonValue2.Float f when
         shouldInferNonStringFromValue
         && inRangeFloat Int32.MinValue Int32.MaxValue f
         && isIntegerFloat f
         ->
-        InferedType.Primitive(typeof<int>, None, false, false, PrimitiveType.Number)
+        InferedType.Primitive(typeof<int>, None, Mandatory, false, PrimitiveType.Number)
     | JsonValue2.Float f when
         shouldInferNonStringFromValue
         && inRangeFloat Int64.MinValue Int64.MaxValue f
         && isIntegerFloat f
         ->
-        InferedType.Primitive(typeof<int64>, None, false, false, PrimitiveType.Number)
-    | JsonValue2.Float _ -> InferedType.Primitive(typeof<float>, None, false, false, PrimitiveType.Number)
+        InferedType.Primitive(typeof<int64>, None, Mandatory, false, PrimitiveType.Number)
+    | JsonValue2.Float _ -> InferedType.Primitive(typeof<float>, None, Mandatory, false, PrimitiveType.Number)
 
     // More interesting types
 
@@ -80,4 +80,4 @@ let rec internal inferType unitsOfMeasureProvider inferenceMode cultureInfo pare
                   let t = inferType unitsOfMeasureProvider inferenceMode cultureInfo propName value
                   { Name = propName; Type = t } ]
 
-        InferedType.Record(name, props, false)
+        InferedType.Record(name, props, Mandatory)

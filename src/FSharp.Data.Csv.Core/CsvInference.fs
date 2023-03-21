@@ -120,12 +120,12 @@ let internal inferCellType
     // Explicit missing values (NaN, NA, Empty string etc.) will be treated as float unless the preferOptionals is set to true
     if Array.exists (value.Trim() |> (=)) missingValues then
         if preferOptionals then
-            InferedType.Null
+            InferedType.Null NullKind.NoValue
         else
-            InferedType.Primitive(typeof<float>, unit, false, false, PrimitiveType.String)
+            InferedType.Primitive(typeof<float>, unit, Mandatory, false, PrimitiveType.String)
     // If there's only whitespace between commas, treat it as a missing value and not as a string
     elif String.IsNullOrWhiteSpace value then
-        InferedType.Null
+        InferedType.Null NullKind.NoValue
     else
         StructuralInference.inferPrimitiveType unitsOfMeasureProvider inferenceMode cultureInfo value unit true BooleanParsing.Lax
 
@@ -283,7 +283,7 @@ let internal inferType
                   [ for (name, unit), schema, value in Array.zip3 headerNamesAndUnits schema row ->
                         let typ =
                             match schema with
-                            | Some _ -> InferedType.Null // this will be ignored, so just return anything
+                            | Some _ -> InferedType.Null NullKind.NoValue // this will be ignored, so just return anything
                             | None ->
                                 inferCellType
                                     unitsOfMeasureProvider
@@ -296,7 +296,7 @@ let internal inferType
 
                         { Name = name; Type = typ } ]
 
-              InferedType.Record(None, fields, false) ]
+              InferedType.Record(None, fields, Mandatory) ]
 
     let inferedType =
         if schema |> Array.forall Option.isSome then
@@ -325,7 +325,7 @@ let internal inferType
 let internal getFields preferOptionals inferedType schema =
 
     match inferedType with
-    | InferedType.Record (None, fields, false) ->
+    | InferedType.Record (None, fields, Mandatory) ->
         fields
         |> List.mapi (fun index field ->
 
@@ -345,7 +345,7 @@ let internal getFields preferOptionals inferedType schema =
 
                     // Transform the types as described above
                     let typ, typWrapper =
-                        if optional then
+                        if optional.IsOptional then
                             if preferOptionals then
                                 typ, TypeWrapper.Option
                             elif typ = typeof<float> then
@@ -374,7 +374,8 @@ let internal getFields preferOptionals inferedType schema =
 
                     PrimitiveInferedProperty.Create(name, typ, typWrapper, unit)
 
-                | _ -> PrimitiveInferedProperty.Create(schemaCompleteDefinition, typeof<string>, preferOptionals, None))
+                | _ ->
+                    PrimitiveInferedProperty.Create(schemaCompleteDefinition, typeof<string>, InferedOptionality.FromBool(preferOptionals), None))
 
     | _ -> failwithf "inferFields: Expected record type, got %A" inferedType
 

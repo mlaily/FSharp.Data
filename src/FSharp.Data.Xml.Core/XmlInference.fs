@@ -102,7 +102,7 @@ let inferGlobalType unitsOfMeasureProvider inferenceMode cultureInfo allowEmptyV
 
             let body = { Name = ""; Type = bodyType }
 
-            let record = InferedType.Record(Some(name.ToString()), body :: attributes, false)
+            let record = InferedType.Record(Some(name.ToString()), body :: attributes, Mandatory)
             name.ToString(), (elements, record))
         |> Map.ofSeq
 
@@ -117,7 +117,7 @@ let inferGlobalType unitsOfMeasureProvider inferenceMode cultureInfo allowEmptyV
 
         for KeyValue (_, value) in assignment do
             match value with
-            | elements, InferedType.Record (Some _name, body :: _attributes, false) ->
+            | elements, InferedType.Record (Some _name, body :: _attributes, Mandatory) ->
                 if body.Name <> "" then
                     failwith "inferGlobalType: Assumed body element first"
 
@@ -167,7 +167,7 @@ let rec inferLocalType unitsOfMeasureProvider inferenceMode cultureInfo allowEmp
 
               yield { Name = ""; Type = primitive } ]
 
-    InferedType.Record(Some(element.Name.ToString()), props, false)
+    InferedType.Record(Some(element.Name.ToString()), props, Mandatory)
 
 /// A type is infered either using `inferLocalType` which only looks
 /// at immediate children or using `inferGlobalType` which unifies nodes

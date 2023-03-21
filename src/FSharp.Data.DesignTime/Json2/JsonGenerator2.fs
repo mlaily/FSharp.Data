@@ -137,7 +137,7 @@ module JsonTypeBuilder2 =
             | InferedType.Heterogeneous (map, _) ->
                 map
                 |> Map.map (fun _ inferedType -> normalize false inferedType)
-                |> (fun x -> InferedType.Heterogeneous(x, false))
+                |> (fun x -> InferedType.Heterogeneous(x, Mandatory))
             | InferedType.Collection (order, types) ->
                 InferedType.Collection(
                     order,
@@ -149,8 +149,8 @@ module JsonTypeBuilder2 =
                     |> List.map (fun { Name = name; Type = inferedType } ->
                         { Name = name
                           Type = normalize false inferedType })
-                // optional only affects the parent, so at top level always set to true regardless of the actual value
-                InferedType.Record(None, props, optional || topLevel)
+                // optional only affects the parent, so at top level always set to optional regardless of the actual value
+                InferedType.Record(None, props, InferedOptionality.Merge(optional, InferedOptionality.FromBool(topLevel)))
             | InferedType.Primitive (typ, unit, optional, shouldOverrideOnMerge, originalType) when
                 typ = typeof<Bit0> || typ = typeof<Bit1> || typ = typeof<Bit>
                 ->
@@ -206,7 +206,7 @@ module JsonTypeBuilder2 =
 
         for _, _, inferedType in types do
             match inferedType with
-            | InferedType.Null
+            | InferedType.Null _
             | InferedType.Top
             | InferedType.Heterogeneous _ -> failwithf "generateMultipleChoiceType: Unsupported type: %A" inferedType
             | x when x.IsOptional -> failwithf "generateMultipleChoiceType: Type shouldn't be optional: %A" inferedType
@@ -366,7 +366,7 @@ module JsonTypeBuilder2 =
               ConversionCallingType = conversionCallingType }
 
         | InferedType.Top
-        | InferedType.Null ->
+        | InferedType.Null _ ->
 
             // Return the underlying JsonDocument without change
             { ConvertedType = ctx.IJsonDocumentType
@@ -391,7 +391,7 @@ module JsonTypeBuilder2 =
         | InferedType.Record (name, props, optional) ->
             getOrCreateType ctx inferedType (fun () ->
 
-                if optional && not optionalityHandledByParent then
+                if optional.IsOptional && not optionalityHandledByParent then
                     failwithf "generateJsonType: optionality not handled for %A" inferedType
 
                 let name =
@@ -633,7 +633,7 @@ module JsonTypeBuilder2 =
                                          | InferedType.Collection _
                                          | InferedType.Heterogeneous _
                                          | InferedType.Top
-                                         | InferedType.Null ->
+                                         | InferedType.Null _ ->
                                              <@@ JsonRuntime2.GetPropertyPackedOrNull(%%jDoc, propName) @@>
                                          | _ -> <@@ JsonRuntime2.GetPropertyPacked(%%jDoc, propName) @@>
 

@@ -60,13 +60,13 @@ let internal inferListType parameters (values: string[]) =
             if String.IsNullOrWhiteSpace value
                || value = "&nbsp;"
                || value = "&nbsp" then
-                InferedType.Null
+                InferedType.Null NullKind.NoValue
             // Explicit missing values (NaN, NA, etc.) will be treated as float unless the preferOptionals is set to true
             elif Array.exists ((=) <| value.Trim()) parameters.MissingValues then
                 if parameters.PreferOptionals then
-                    InferedType.Null
+                    InferedType.Null NullKind.NoValue
                 else
-                    InferedType.Primitive(typeof<float>, None, false, false, PrimitiveType.String)
+                    InferedType.Primitive(typeof<float>, None, Mandatory, false, PrimitiveType.String)
             else
                 inferPrimitiveType
                     parameters.UnitsOfMeasureProvider
@@ -81,4 +81,4 @@ let internal inferListType parameters (values: string[]) =
         |> Array.map inferedtype
         |> Array.reduce (subtypeInfered (not parameters.PreferOptionals))
     else
-        InferedType.Null
+        InferedType.Null NullKind.NoValue
