@@ -79,6 +79,41 @@ type PrimitiveType =
         | 3 -> Some Bool
         | _ -> failwith $"PrimitiveType value {x} is not mapped."
 
+/// Used to keep track of why something was inferred as optional/null,
+/// and be able to serialize back to the correct representation. (e.g. null token for the json provider)
+[<RequireQualifiedAccess>]
+[<Obsolete("This API will be made internal in a future release. Please file an issue at https://github.com/fsprojects/FSharp.Data/issues/1458 if you need this public.")>]
+type NullKind =
+    | NoValue
+    | NullToken
+
+[<Obsolete("This API will be made internal in a future release. Please file an issue at https://github.com/fsprojects/FSharp.Data/issues/1458 if you need this public.")>]
+[<DefaultAugmentation(false)>]
+type InferedOptionality =
+    | Optional of kind: NullKind
+    | Mandatory
+
+    member this.IsOptional =
+        match this with
+        | Optional _ -> true
+        | Mandatory -> false
+
+    static member FromBool(optional) =
+        if optional then
+            Optional NullKind.NoValue
+        else Mandatory
+
+    static member Merge(opt1, opt2) =
+        match opt1, opt2 with
+        | Mandatory, Mandatory -> Mandatory
+        | Optional k, Mandatory
+        | Mandatory, Optional k -> Optional k
+        | Optional k1, Optional k2 ->
+            match k1, k2 with
+            | NullKind.NoValue, NullKind.NoValue -> Optional NullKind.NoValue
+            | NullKind.NullToken, _
+            | _, NullKind.NullToken -> Optional NullKind.NullToken // when we have a null token, it takes precedence
+
 /// Represents inferred structural type. A type may be either primitive type
 /// (one of those listed by `primitiveTypes`) or it can be collection,
 /// (named) record and heterogeneous type. We also have `Null` type (which is
@@ -92,7 +127,7 @@ type PrimitiveType =
 ///
 /// Why is collection not simply a list of Heterogeneous types? If we used that
 /// we would lose information about multiplicity and so we would not be able
-/// to generate nicer types!
+/// to generate nicer types! (This is especially relevant for the XmlProvider)
 [<CustomEquality; NoComparison; RequireQualifiedAccess>]
 [<Obsolete("This API will be made internal in a future release. Please file an issue at https://github.com/fsprojects/FSharp.Data/issues/1458 if you need this public.")>]
 [<DebuggerDisplay("{ToString(),nq}")>]
@@ -102,21 +137,21 @@ type InferedType =
     | Primitive of
         typ: Type *
         unit: option<System.Type> *
-        optional: bool *
+        optional: InferedOptionality *
         shouldOverrideOnMerge: bool *
         originalType: PrimitiveType
-    | Record of name: string option * fields: InferedProperty list * optional: bool
-    | Json of typ: InferedType * optional: bool
+    | Record of name: string option * fields: InferedProperty list * optional: InferedOptionality
+    | Json of typ: InferedType * optional: InferedOptionality
     | Collection of order: InferedTypeTag list * types: Map<InferedTypeTag, InferedMultiplicity * InferedType>
-    | Heterogeneous of types: Map<InferedTypeTag, InferedType> * containsOptional: bool
-    | Null
+    | Heterogeneous of types: Map<InferedTypeTag, InferedType> * containsOptional: InferedOptionality
+    | Null of kind: NullKind
     | Top
 
     member x.IsOptional =
         match x with
-        | Primitive(optional = true)
-        | Record(optional = true)
-        | Json(optional = true) -> true
+        | Primitive(optional = Optional _)
+        | Record(optional = Optional _)
+        | Json(optional = Optional _) -> true
         | _ -> false
 
     static member CanHaveEmptyValues typ =
@@ -125,23 +160,23 @@ type InferedType =
     /// When allowEmptyValues is true, we allow "" and double.NaN, otherwise
     /// we make the type optional and use None instead.
     /// It's currently only true in CsvProvider when PreferOptionals is set to false
-    member x.EnsuresHandlesMissingValues allowEmptyValues =
+    member x.EnsuresHandlesMissingValues allowEmptyValues nullKind =
         match x with
-        | Null
-        | Heterogeneous(containsOptional = true)
-        | Primitive(optional = true)
-        | Record(optional = true)
-        | Json(optional = true) -> x
-        | Primitive (typ, _, false, _, _) when
+        | Null _
+        | Heterogeneous(containsOptional = Optional _)
+        | Primitive(optional = Optional _)
+        | Record(optional = Optional _)
+        | Json(optional = Optional _) -> x
+        | Primitive (typ, _, Mandatory, _, _) when
             allowEmptyValues
             && InferedType.CanHaveEmptyValues typ
             ->
             x
-        | Heterogeneous (map, false) -> Heterogeneous(map, true)
-        | Primitive (typ, unit, false, overrideOnMerge, originalType) ->
-            Primitive(typ, unit, true, overrideOnMerge, originalType)
-        | Record (name, props, false) -> Record(name, props, true)
-        | Json (typ, false) -> Json(typ, true)
+        | Heterogeneous (map, Mandatory) -> Heterogeneous(map, Optional nullKind)
+        | Primitive (typ, unit, Mandatory, overrideOnMerge, originalType) ->
+            Primitive(typ, unit, Optional nullKind, overrideOnMerge, originalType)
+        | Record (name, props, Mandatory) -> Record(name, props, Optional nullKind)
+        | Json (typ, Mandatory) -> Json(typ, Optional nullKind)
         | Collection (order, types) ->
             let typesR =
                 types
@@ -152,12 +187,12 @@ type InferedType =
 
     member x.GetDropOptionality() =
         match x with
-        | Primitive (typ, unit, true, overrideOnMerge, originalType) ->
-            Primitive(typ, unit, false, overrideOnMerge, originalType), true
-        | Record (name, props, true) -> Record(name, props, false), true
-        | Json (typ, true) -> Json(typ, false), true
-        | Heterogeneous (map, true) -> Heterogeneous(map, false), true
-        | _ -> x, false
+        | Primitive (typ, unit, Optional _, overrideOnMerge, originalType) ->
+            Primitive(typ, unit, Mandatory, overrideOnMerge, originalType), Optional NullKind.NoValue
+        | Record (name, props, Optional _) -> Record(name, props, Mandatory), Optional NullKind.NoValue
+        | Json (typ, Optional _) -> Json(typ, Mandatory), Optional NullKind.NoValue
+        | Heterogeneous (map, Optional _) -> Heterogeneous(map, Mandatory), Optional NullKind.NoValue
+        | _ -> x, Mandatory
 
     member x.DropOptionality() = x.GetDropOptionality() |> fst
 
@@ -179,7 +214,7 @@ type InferedType =
             | Json (t1, o1), Json (t2, o2) -> t1 = t2 && o1 = o2
             | Collection (o1, t1), Collection (o2, t2) -> o1 = o2 && t1 = t2
             | Heterogeneous (m1, o1), Heterogeneous (m2, o2) -> m1 = m2 && o1 = o2
-            | Null, Null
+            | Null k1, Null k2 -> k1 = k2
             | Top, Top -> true
             | _ -> false
         else
@@ -202,7 +237,7 @@ type InferedType =
 
             match t with
             | Top -> indented ("(Top)") |> ignore
-            | Null -> indented ("(Null)") |> ignore
+            | Null kind -> indented ($"(*Null* Kind: {kind})") |> ignore
             | Primitive (typ, unit, opt, overrideOnMerge, originalType) ->
                 indented (
                     $"(*Primitive* %A{typ}, Unit: %A{unit}, Optional: {opt}, OverrideOnMerge: {overrideOnMerge}, OriginalType: {originalType})"
@@ -332,8 +367,10 @@ type TypeWrapper =
     | Option
     /// The type T will be converter to type Nullable<T>
     | Nullable
-    static member FromOption optional =
-        if optional then TypeWrapper.Option else TypeWrapper.None
+    static member FromOption (optional: InferedOptionality) =
+        match optional with
+        | Optional _ -> TypeWrapper.Option
+        | Mandatory -> TypeWrapper.None
 
 /// Represents type information about a primitive value (used mainly in the CSV provider)
 /// This type captures the type, unit of measure and handling of missing values (if we

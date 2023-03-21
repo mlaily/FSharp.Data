@@ -129,9 +129,9 @@ module internal XmlTypeBuilder =
               match primitive with
               | InferedType.Primitive (typ, unit, optional, _, _) ->
 
-                  let optional = optional || forceOptional
-                  let optionalJustBecauseThereAreMultiple = primitives.Length > 1 && not optional
-                  let optional = optional || primitives.Length > 1
+                  let optional = InferedOptionality.Merge(optional, forceOptional)
+                  let optionalJustBecauseThereAreMultiple = InferedOptionality.FromBool(primitives.Length > 1 && not optional.IsOptional)
+                  let optional = InferedOptionality.Merge(optional, InferedOptionality.FromBool(primitives.Length > 1))
 
                   let typ, conv =
                       ctx.ConvertValue
@@ -157,19 +157,19 @@ module internal XmlTypeBuilder =
 
                   let result = JsonTypeBuilder.generateJsonType ctx false true "" typ
 
-                  let optional = optional || forceOptional
-                  let optionalJustBecauseThereAreMultiple = primitives.Length > 1 && not optional
-                  let optional = optional || primitives.Length > 1
+                  let optional = InferedOptionality.Merge(optional, forceOptional)
+                  let optionalJustBecauseThereAreMultiple = InferedOptionality.FromBool(primitives.Length > 1 && not optional.IsOptional)
+                  let optional = InferedOptionality.Merge(optional, InferedOptionality.FromBool(primitives.Length > 1))
 
                   let typ =
-                      if optional then
+                      if optional.IsOptional then
                           ctx.MakeOptionType result.ConvertedType
                       else
                           result.ConvertedType
 
                   let conv =
                       fun xml ->
-                          if optional then
+                          if optional.IsOptional then
                               <@@ XmlRuntime.TryGetJsonValue(%%xml) @@>
                           else
                               <@@ XmlRuntime.GetJsonValue(%%xml) @@>
@@ -186,7 +186,7 @@ module internal XmlTypeBuilder =
         match inferedType with
 
         // If we already generated object for this type, return it
-        | InferedType.Record (Some _, _, false) when ctx.XmlTypeCache.ContainsKey inferedType ->
+        | InferedType.Record (Some _, _, Mandatory) when ctx.XmlTypeCache.ContainsKey inferedType ->
             ctx.XmlTypeCache.[inferedType]
 
         // If the element does not have any children and always contains only primitive type
@@ -194,10 +194,10 @@ module internal XmlTypeBuilder =
         | InferedType.Record (Some _,
                               [ { Name = ""
                                   Type = (InferedType.Primitive _ | InferedType.Json _) as primitive } ],
-                              false) ->
+                              Mandatory) ->
 
             let typ, _, conv, _ =
-                getTypesForPrimitives ctx false [ primitive ]
+                getTypesForPrimitives ctx Mandatory [ primitive ]
                 |> Seq.exactlyOne
 
             { ConvertedType = typ
@@ -276,7 +276,7 @@ module internal XmlTypeBuilder =
               Converter = id }
 
         // If the element is more complicated, then we generate a type to represent it properly
-        | InferedType.Record (Some nameWithNS, props, false) ->
+        | InferedType.Record (Some nameWithNS, props, Mandatory) ->
 
             let names =
                 nameWithNS.Split [| '|' |]
@@ -327,7 +327,7 @@ module internal XmlTypeBuilder =
                           ),
                           ProvidedParameter(NameUtils.niceCamelName name, typ)
 
-                      let createPrimitiveMember typ unit (optional: bool) =
+                      let createPrimitiveMember typ unit (optional: InferedOptionality) =
                           let typ, conv =
                               ctx.ConvertValue
                               <| PrimitiveInferedProperty.Create("Attribute " + name, typ, optional, unit)
@@ -356,11 +356,11 @@ module internal XmlTypeBuilder =
                                   failwithf "generateXmlType: Type shouldn't be optional: %A" typ
 
                               match typ with
-                              | InferedType.Primitive (primTyp, unit, false, _, _) ->
+                              | InferedType.Primitive (primTyp, unit, Mandatory, _, _) ->
 
                                   let typ, conv =
                                       ctx.ConvertValue
-                                      <| PrimitiveInferedProperty.Create(tag.NiceName, primTyp, true, unit)
+                                      <| PrimitiveInferedProperty.Create(tag.NiceName, primTyp, Optional NullKind.NoValue, unit)
 
                                   choiceTy.AddMember
                                   <| ProvidedProperty(
@@ -371,7 +371,7 @@ module internal XmlTypeBuilder =
 
                                   let typ, convBack =
                                       ctx.ConvertValueBack
-                                      <| PrimitiveInferedProperty.Create(tag.NiceName, primTyp, false, unit)
+                                      <| PrimitiveInferedProperty.Create(tag.NiceName, primTyp, Mandatory, unit)
 
                                   let valueCode (Singleton arg: Expr list) =
                                       arg
@@ -397,7 +397,7 @@ module internal XmlTypeBuilder =
                           createMember choiceTy (fun x -> x :> Expr)
 
                       | InferedType.Primitive (typ, unit, optional, _, _) -> createPrimitiveMember typ unit optional
-                      | InferedType.Null -> createPrimitiveMember typeof<string> None false
+                      | InferedType.Null _ -> createPrimitiveMember typeof<string> None Mandatory
 
                       | _ -> failwithf "generateXmlType: Expected Primitive or Choice type, got %A" attr.Type ]
 
@@ -408,13 +408,13 @@ module internal XmlTypeBuilder =
                 | [ ContentType (primitives, children) ] ->
 
                     // If there may be other children, make it optional
-                    let forceOptional = children.Length > 0
+                    let forceOptional = InferedOptionality.FromBool(children.Length > 0)
 
                     let primitiveResults =
                         [ for typ, name, conv, optionalJustBecauseThereAreMultiple in
                               getTypesForPrimitives ctx forceOptional primitives ->
                               let nonOptionalType =
-                                  if optionalJustBecauseThereAreMultiple
+                                  if optionalJustBecauseThereAreMultiple.IsOptional
                                      && typ.IsGenericType then
                                       typ.GetGenericArguments().[0]
                                   else
@@ -443,8 +443,8 @@ module internal XmlTypeBuilder =
                                                                                                           (_,
                                                                                                            InferedType.Record (Some childNameWithNS2,
                                                                                                                                _,
-                                                                                                                               false) as multiplicityAndType))) } ],
-                                                         false)) when
+                                                                                                                               Mandatory) as multiplicityAndType))) } ],
+                                                         Mandatory)) when
                                       parentNameWithNS = parentNameWithNS2
                                       && childNameWithNS = childNameWithNS2
                                       && isCollectionName

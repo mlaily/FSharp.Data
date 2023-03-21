@@ -208,7 +208,7 @@ class JsonProvider+OptionalPrimitive : FDR.BaseTypes.IJsonDocument
 
 
 class JsonProvider+OptionalRecord : FDR.BaseTypes.IJsonDocument
-    new : optionalBecauseMissing:JsonProvider+OptionalBecauseMissing option -> optionalBecauseNull:JsonProvider+OptionalBecauseMissing option -> optionalBecauseEmptyString:JsonProvider+OptionalBecauseMissing option -> notOptional:JsonProvider+OptionalBecauseMissing -> JsonProvider+OptionalRecord
+    new : optionalBecauseMissing:JsonProvider+OptionalBecauseMissing option -> optionalBecauseNull:JsonProvider+OptionalBecauseNull option -> optionalBecauseEmptyString:JsonProvider+OptionalBecauseMissing option -> notOptional:JsonProvider+OptionalBecauseMissing -> JsonProvider+OptionalRecord
     JsonRuntime.CreateRecord([| ("optionalBecauseMissing",
                                  (optionalBecauseMissing :> obj),
                                  0)
@@ -234,7 +234,7 @@ class JsonProvider+OptionalRecord : FDR.BaseTypes.IJsonDocument
     member OptionalBecauseMissing: JsonProvider+OptionalBecauseMissing option with get
     JsonRuntime.TryGetPropertyPacked(this, "optionalBecauseMissing")
 
-    member OptionalBecauseNull: JsonProvider+OptionalBecauseMissing option with get
+    member OptionalBecauseNull: JsonProvider+OptionalBecauseNull option with get
     JsonRuntime.TryGetPropertyPacked(this, "optionalBecauseNull")
 
 
@@ -431,6 +431,20 @@ class JsonProvider+OptionalBecauseMissing : FDR.BaseTypes.IJsonDocument
                                  2) |], "")
 
     new : jsonValue:JsonValue -> JsonProvider+OptionalBecauseMissing
+    JsonDocument.Create(jsonValue, "")
+
+    member A: int with get
+    let value = JsonRuntime.TryGetPropertyUnpackedWithPath(this, "a")
+    JsonRuntime.GetNonOptionalValue(value.Path, JsonRuntime.ConvertInteger("", value.JsonOpt), value.JsonOpt)
+
+
+class JsonProvider+OptionalBecauseNull : FDR.BaseTypes.IJsonDocument
+    new : a:int -> JsonProvider+OptionalBecauseNull
+    JsonRuntime.CreateRecord([| ("a",
+                                 (a :> obj),
+                                 2) |], "")
+
+    new : jsonValue:JsonValue -> JsonProvider+OptionalBecauseNull
     JsonDocument.Create(jsonValue, "")
 
     member A: int with get

@@ -255,7 +255,7 @@ module internal XsdInference =
 
     let nil =
         { InferedProperty.Name = "{http://www.w3.org/2001/XMLSchema-instance}nil"
-          Type = InferedType.Primitive(typeof<bool>, None, true, false, PrimitiveType.String) }
+          Type = InferedType.Primitive(typeof<bool>, None, Optional NullKind.NoValue, false, PrimitiveType.String) }
 
     type InferenceContext = System.Collections.Generic.Dictionary<XsdComplexType, InferedProperty>
 
@@ -264,29 +264,28 @@ module internal XsdInference =
         let name = getElementName elm
 
         if elm.IsAbstract then
-            InferedType.Record(name, [], optional = false)
+            InferedType.Record(name, [], optional = Mandatory)
         else
             match elm.Type with
             | SimpleType typeCode ->
-                let ty =
-                    InferedType.Primitive(getType typeCode, None, elm.IsNillable, false, PrimitiveType.String)
+                let ty = InferedType.Primitive(getType typeCode, None, InferedOptionality.FromBool(elm.IsNillable), false, PrimitiveType.String)
 
                 let prop = { InferedProperty.Name = ""; Type = ty }
                 let props = if elm.IsNillable then [ prop; nil ] else [ prop ]
-                InferedType.Record(name, props, optional = false)
+                InferedType.Record(name, props, optional = Mandatory)
             | ComplexType cty ->
                 let props = inferProperties ctx cty
 
                 let props =
                     if elm.IsNillable then
                         for prop in props do
-                            prop.Type <- prop.Type.EnsuresHandlesMissingValues false
+                            prop.Type <- prop.Type.EnsuresHandlesMissingValues false NullKind.NoValue
 
                         nil :: props
                     else
                         props
 
-                InferedType.Record(name, props, optional = false)
+                InferedType.Record(name, props, optional = Mandatory)
 
 
     and inferProperties (ctx: InferenceContext) cty =
@@ -294,13 +293,13 @@ module internal XsdInference =
             cty.Attributes
             |> List.map (fun (name, typeCode, optional) ->
                 { Name = formatName name
-                  Type = InferedType.Primitive(getType typeCode, None, optional, false, PrimitiveType.String) })
+                  Type = InferedType.Primitive(getType typeCode, None, InferedOptionality.FromBool(optional), false, PrimitiveType.String) })
 
         match cty.Contents with
         | SimpleContent typeCode ->
             let body =
                 { InferedProperty.Name = ""
-                  Type = InferedType.Primitive(getType typeCode, None, false, false, PrimitiveType.String) }
+                  Type = InferedType.Primitive(getType typeCode, None, Mandatory, false, PrimitiveType.String) }
 
             body :: attrs
         | ComplexContent xsdParticle ->
@@ -317,7 +316,7 @@ module internal XsdInference =
 
                     result.Type <-
                         match getElements ctx Single xsdParticle with
-                        | [] -> InferedType.Null
+                        | [] -> InferedType.Null NullKind.NoValue
                         | items ->
                             let tags = items |> List.map (fst >> getRecordTag)
 
@@ -331,7 +330,7 @@ module internal XsdInference =
 
                     result
 
-            if body.Type = InferedType.Null then
+            if body.Type = InferedType.Null NullKind.NoValue then
                 attrs
             else
                 body :: attrs
@@ -373,4 +372,4 @@ module internal XsdInference =
             elms
             |> List.map (fun elm -> InferedTypeTag.Record(getElementName elm), inferElementType ctx elm)
             |> Map.ofList
-            |> (fun x -> InferedType.Heterogeneous(x, false))
+            |> (fun x -> InferedType.Heterogeneous(x, Mandatory))
