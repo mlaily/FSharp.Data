@@ -210,7 +210,7 @@ module JsonTypeBuilder2 =
             | InferedType.Null _
             | InferedType.Top
             | InferedType.Heterogeneous _ -> failwithf "generateMultipleChoiceType: Unsupported type: %A" inferedType
-            | x when x.IsOptional -> failwithf "generateMultipleChoiceType: Type shouldn't be optional: %A" inferedType
+            | x when x.IsExplicitlyOptional OptionalCollection.Allow -> failwithf "generateMultipleChoiceType: Type shouldn't be optional: %A" inferedType
             | _ -> ()
 
         let typeName =
@@ -620,7 +620,7 @@ module JsonTypeBuilder2 =
                                          else
                                              <@@ JsonRuntime2.TryGetPropertyUnpacked(%%jDoc, propName) @@>
 
-                                  elif prop.Type.IsOptional then
+                                  elif prop.Type.IsExplicitlyOptional OptionalCollection.Allow then
 
                                       match propResult.OptionalConverter with
                                       | Some _ ->
@@ -643,7 +643,7 @@ module JsonTypeBuilder2 =
                                          | _ -> <@@ JsonRuntime2.GetPropertyPacked(%%jDoc, propName) @@>
 
                               let convertedType =
-                                  if prop.Type.IsOptional
+                                  if prop.Type.IsExplicitlyOptional OptionalCollection.Allow
                                      && not optionalityHandledByProperty then
                                       ctx.MakeOptionType propResult.ConvertedType
                                   else

@@ -352,7 +352,7 @@ module internal XmlTypeBuilder =
 
                           for KeyValue (tag, typ) in types do
 
-                              if typ.IsOptional then
+                              if typ.IsExplicitlyOptional OptionalCollection.Disallow then
                                   failwithf "generateXmlType: Type shouldn't be optional: %A" typ
 
                               match typ with
