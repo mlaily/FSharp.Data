@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <OtherFlags>$(OtherFlags) --warnon:1182 --nowarn:10001 --nowarn:44</OtherFlags>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <PackageIcon>logo.png</PackageIcon>
+    <!-- always have tailcalls on for design time compiler add-in to allow repo to compile in DEBUG, see https://github.com/fsprojects/FSharp.Data/issues/1410 -->
+    <Tailcalls>true</Tailcalls>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="JsonValue2.fs" />
+    <Compile Include="JsonConversions2.fs" />
+    <Compile Include="JsonExtensions2.fs" />
+    <Compile Include="JsonDocument2.fs" />
+    <Compile Include="JsonRuntime2.fs" />
+    <Compile Include="JsonInference2.fs" />
+    <Compile Include="..\AssemblyInfo.Json.Core2.fs" />
+    <Compile Include="InternalsVisibleTo.fs" />
+    <None Include="..\..\docs\img\logo.png" Pack="true" PackagePath="\" />
+    <None Include="paket.references" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\FSharp.Data.Http\FSharp.Data.Http.fsproj" />
+    <ProjectReference Include="..\FSharp.Data.Runtime.Utilities\FSharp.Data.Runtime.Utilities.fsproj" />
+  </ItemGroup>
+  <Import Project="..\..\.paket\Paket.Restore.targets" />
+</Project>

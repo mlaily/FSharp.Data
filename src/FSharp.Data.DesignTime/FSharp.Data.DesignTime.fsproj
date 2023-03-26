@@ -24,6 +24,9 @@
     <Compile Include="Json\JsonConversionsGenerator.fs" />
     <Compile Include="Json\JsonGenerator.fs" />
     <Compile Include="Json\JsonProvider.fs" />
+    <Compile Include="Json2\JsonConversionsGenerator2.fs" />
+    <Compile Include="Json2\JsonGenerator2.fs" />
+    <Compile Include="Json2\JsonProvider2.fs" />
     <Compile Include="Xml\XmlGenerator.fs" />
     <Compile Include="Xml\XmlProvider.fs" />
     <Compile Include="Csv\CsvGenerator.fs" />
@@ -36,6 +39,7 @@
     <None Include="paket.references" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\FSharp.Data.Json.Core2\FSharp.Data.Json.Core2.fsproj" />
     <ProjectReference Include="..\FSharp.Data.Json.Core\FSharp.Data.Json.Core.fsproj" />
     <ProjectReference Include="..\FSharp.Data.Xml.Core\FSharp.Data.Xml.Core.fsproj" />
     <ProjectReference Include="..\FSharp.Data.Csv.Core\FSharp.Data.Csv.Core.fsproj" />

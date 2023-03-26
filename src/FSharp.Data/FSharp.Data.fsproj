@@ -23,6 +23,7 @@
       <IsFSharpDesignTimeProvider>true</IsFSharpDesignTimeProvider>
       <PrivateAssets>all</PrivateAssets>
     </ProjectReference>
+    <ProjectReference Include="..\FSharp.Data.Json.Core2\FSharp.Data.Json.Core2.fsproj" />
     <ProjectReference Include="..\FSharp.Data.Json.Core\FSharp.Data.Json.Core.fsproj" />
     <ProjectReference Include="..\FSharp.Data.Xml.Core\FSharp.Data.Xml.Core.fsproj" />
     <ProjectReference Include="..\FSharp.Data.Csv.Core\FSharp.Data.Csv.Core.fsproj" />
