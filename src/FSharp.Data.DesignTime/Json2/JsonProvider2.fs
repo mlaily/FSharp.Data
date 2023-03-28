@@ -58,12 +58,11 @@ type public JsonProvider2(cfg: TypeProviderConfig) as this =
         let encodingStr = args.[4] :?> string
         let resolutionFolder = args.[5] :?> string
         let resource = args.[6] :?> string
-        let inferTypesFromValues = args.[7] :?> bool
-        let preferDictionaries = args.[8] :?> bool
-        let inferenceMode = args.[9] :?> InferenceMode
+        let preferDictionaries = args.[7] :?> bool
+        let inferenceMode = args.[8] :?> InferenceMode
 
         let inferenceMode =
-            InferenceMode'.FromPublicApi(inferenceMode, inferTypesFromValues)
+            InferenceMode'.FromPublicApi(inferenceMode, legacyInferTypesFromValues=true)
 
         let cultureInfo = TextRuntime.GetCulture cultureStr
         let unitsOfMeasureProvider = ProviderHelpers.unitsOfMeasureProvider
@@ -121,12 +120,11 @@ type public JsonProvider2(cfg: TypeProviderConfig) as this =
           ProvidedStaticParameter("Encoding", typeof<string>, parameterDefaultValue = "")
           ProvidedStaticParameter("ResolutionFolder", typeof<string>, parameterDefaultValue = "")
           ProvidedStaticParameter("EmbeddedResource", typeof<string>, parameterDefaultValue = "")
-          ProvidedStaticParameter("InferTypesFromValues", typeof<bool>, parameterDefaultValue = true)
           ProvidedStaticParameter("PreferDictionaries", typeof<bool>, parameterDefaultValue = false)
           ProvidedStaticParameter(
               "InferenceMode",
               typeof<InferenceMode>,
-              parameterDefaultValue = InferenceMode.BackwardCompatible
+              parameterDefaultValue = InferenceMode.ValuesAndInlineSchemasOverrides
           ) ]
 
     let helpText =
@@ -146,9 +144,9 @@ type public JsonProvider2(cfg: TypeProviderConfig) as this =
            <param name='PreferDictionaries'>If true, json records are interpreted as dictionaries when the names of all the fields are inferred (by type inference rules) into the same non-string primitive type.</param>
            <param name='InferenceMode'>Possible values:
               | NoInference -> Inference is disabled. All values are inferred as the most basic type permitted for the value (i.e. string or number or bool).
-              | ValuesOnly -> Types of values are inferred from the Sample. Inline schema support is disabled. This is the default.
+              | ValuesOnly -> Types of values are inferred from the Sample. Inline schema support is disabled.
               | ValuesAndInlineSchemasHints -> Types of values are inferred from both values and inline schemas. Inline schemas are special string values that can define a type and/or unit of measure. Supported syntax: typeof&lt;type&gt; or typeof{type} or typeof&lt;type&lt;measure&gt;&gt; or typeof{type{measure}}. Valid measures are the default SI units, and valid types are <c>int</c>, <c>int64</c>, <c>bool</c>, <c>float</c>, <c>decimal</c>, <c>date</c>, <c>datetimeoffset</c>, <c>timespan</c>, <c>guid</c> and <c>string</c>.
-              | ValuesAndInlineSchemasOverrides -> Same as ValuesAndInlineSchemasHints, but value inferred types are ignored when an inline schema is present.
+              | ValuesAndInlineSchemasOverrides -> Same as ValuesAndInlineSchemasHints, but value inferred types are ignored when an inline schema is present. This is the default.
            </param>"""
 
     do jsonProvTy.AddXmlDoc helpText
