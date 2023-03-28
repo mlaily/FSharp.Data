@@ -297,23 +297,6 @@ type JsonRuntime2 =
             failwithf "Expecting an array at '%s', got %s" (doc.Path())
             <| x.ToString(JsonSaveOptions2.DisableFormatting)
 
-    /// Returns single or no value from an array matching the specified tag
-    static member TryGetArrayChildByTypeTag<'T>(doc, cultureStr, tagCode, mapping: Func<IJsonDocument2, 'T>) =
-        match JsonRuntime2.GetArrayChildrenByTypeTag(doc, cultureStr, tagCode, mapping) with
-        | [| child |] -> Some child
-        | [||] -> None
-        | _ ->
-            failwithf "Expecting an array with single or no elements at '%s', got %s" (doc.Path())
-            <| doc.JsonValue.ToString(JsonSaveOptions2.DisableFormatting)
-
-    /// Returns a single array children that matches the specified tag
-    static member GetArrayChildByTypeTag(doc, cultureStr, tagCode) =
-        match JsonRuntime2.GetArrayChildrenByTypeTag(doc, cultureStr, tagCode, Func<_, _>(id)) with
-        | [| child |] -> child
-        | _ ->
-            failwithf "Expecting an array with single element at '%s', got %s" (doc.Path())
-            <| doc.JsonValue.ToString(JsonSaveOptions2.DisableFormatting)
-
     /// Returns a single or no value by tag type
     static member TryGetValueByTypeTag<'T>(doc: IJsonDocument2, cultureStr, tagCode, mapping: Func<IJsonDocument2, 'T>) =
         if JsonRuntime2.Matches cultureStr (InferedTypeTag.ParseCode tagCode) doc.JsonValue then

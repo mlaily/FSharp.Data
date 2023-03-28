@@ -194,7 +194,7 @@ module JsonTypeBuilder2 =
         types
         forCollection
         nameOverride
-        (codeGenerator: _ -> _ -> _ -> _ -> Expr)
+        (codeGenerator: _ -> _ -> _ -> Expr)
         =
 
         let types =
@@ -220,9 +220,9 @@ module JsonTypeBuilder2 =
             else
                 let getTypeName (tag: InferedTypeTag, multiplicity, inferedType) =
                     match multiplicity with
+                    | InferedMultiplicity.Single -> failwith "Single multiplicity not supported"
                     | InferedMultiplicity.Multiple -> NameUtils.pluralize tag.NiceName
-                    | InferedMultiplicity.OptionalSingle
-                    | InferedMultiplicity.Single ->
+                    | InferedMultiplicity.OptionalSingle ->
                         match inferedType with
                         | InferedType.Primitive (typ, _, _, _, _) ->
                             if typ = typeof<int>
@@ -266,21 +266,18 @@ module JsonTypeBuilder2 =
 
                   let name, typ, constructorType =
                       match multiplicity with
+                      | InferedMultiplicity.Single -> failwith "Single multiplicity not supported"
                       | InferedMultiplicity.OptionalSingle ->
+                          assert (forCollection = false)
                           makeUnique propName,
                           ctx.MakeOptionType result.ConvertedType,
-                          if forCollection then
-                              ctx.MakeOptionType(replaceJDocWithJValue ctx result.ConvertedType)
-                          else
-                              replaceJDocWithJValue ctx result.ConvertedType
-                      | InferedMultiplicity.Single ->
-                          makeUnique propName, result.ConvertedType, replaceJDocWithJValue ctx result.ConvertedType
+                          replaceJDocWithJValue ctx result.ConvertedType
                       | InferedMultiplicity.Multiple ->
                           makeUnique (NameUtils.pluralize tag.NiceName),
                           result.ConvertedType.MakeArrayType(),
                           (replaceJDocWithJValue ctx result.ConvertedType).MakeArrayType()
 
-                  ProvidedProperty(name, typ, getterCode = codeGenerator multiplicity result tag.Code),
+                  ProvidedProperty(name, typ, getterCode = codeGenerator result tag.Code),
                   ProvidedParameter(NameUtils.niceCamelName name, constructorType),
                   findOriginalPrimitiveType inferedType ]
 
@@ -353,6 +350,8 @@ module JsonTypeBuilder2 =
                 InferedType.Collection(
                     List.filter ((<>) InferedTypeTag.Null) order,
                     Map.remove InferedTypeTag.Null types
+                    // Ignore inferred collection multiplicity since json has an unambiguous collection representation.
+                    |> Map.map (fun _ (_, typ) -> InferedMultiplicity.Multiple, typ)
                 )
             | x -> x
 
@@ -694,35 +693,15 @@ module JsonTypeBuilder2 =
         | InferedType.Collection (_, types) ->
             getOrCreateType ctx inferedType (fun () ->
 
-                // Generate a choice type that calls either `GetArrayChildrenByTypeTag`
-                // or `GetArrayChildByTypeTag`, depending on the multiplicity of the item
-                generateMultipleChoiceType ctx types true nameOverride (fun multiplicity result tagCode ->
-                    match multiplicity with
-                    | InferedMultiplicity.Single ->
-                        fun (Singleton jDoc) ->
-                            // Generate method that calls `GetArrayChildByTypeTag`
-                            let cultureStr = ctx.CultureStr
-                            result.Convert <@@ JsonRuntime2.GetArrayChildByTypeTag(%%jDoc, cultureStr, tagCode) @@>
+                // Generate a choice type that calls `GetArrayChildrenByTypeTag`
+                generateMultipleChoiceType ctx types true nameOverride (fun result tagCode ->
+                    fun (Singleton jDoc) ->
+                        // Generate method that calls `GetArrayChildrenByTypeTag`
+                        let cultureStr = ctx.CultureStr
 
-                    | InferedMultiplicity.Multiple ->
-                        fun (Singleton jDoc) ->
-                            // Generate method that calls `GetArrayChildrenByTypeTag`
-                            // (unlike the previous easy case, this needs to call conversion function
-                            // from the runtime similarly to options and arrays)
-                            let cultureStr = ctx.CultureStr
-
-                            ctx.JsonRuntimeType?(nameof (JsonRuntime2.GetArrayChildrenByTypeTag))
-                                (result.ConvertedTypeErased ctx)
-                                (jDoc, cultureStr, tagCode, result.ConverterFunc ctx)
-
-                    | InferedMultiplicity.OptionalSingle ->
-                        fun (Singleton jDoc) ->
-                            // Similar to the previous case, but call `TryGetArrayChildByTypeTag`
-                            let cultureStr = ctx.CultureStr
-
-                            ctx.JsonRuntimeType?(nameof (JsonRuntime2.TryGetArrayChildByTypeTag))
-                                (result.ConvertedTypeErased ctx)
-                                (jDoc, cultureStr, tagCode, result.ConverterFunc ctx)))
+                        ctx.JsonRuntimeType?(nameof (JsonRuntime2.GetArrayChildrenByTypeTag))
+                            (result.ConvertedTypeErased ctx)
+                            (jDoc, cultureStr, tagCode, result.ConverterFunc ctx)))
 
         | InferedType.Heterogeneous (types, _) ->
             getOrCreateType ctx inferedType (fun () ->
@@ -732,9 +711,8 @@ module JsonTypeBuilder2 =
                     types
                     |> Map.map (fun _ v -> InferedMultiplicity.OptionalSingle, v)
 
-                generateMultipleChoiceType ctx types false nameOverride (fun multiplicity result tagCode ->
+                generateMultipleChoiceType ctx types false nameOverride (fun result tagCode ->
                     fun (Singleton jDoc) ->
-                        assert (multiplicity = InferedMultiplicity.OptionalSingle)
                         let cultureStr = ctx.CultureStr
 
                         ctx.JsonRuntimeType?(nameof (JsonRuntime2.TryGetValueByTypeTag))
