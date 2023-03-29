@@ -152,11 +152,9 @@ module JsonTypeBuilder2 =
                 // optional only affects the parent, so at top level always set to true regardless of the actual value
                 InferedType.Record(None, props, optional || topLevel)
             | InferedType.Primitive (typ, unit, optional, shouldOverrideOnMerge, originalType) when
-                typ = typeof<Bit0> || typ = typeof<Bit1>
+                typ = typeof<Bit0> || typ = typeof<Bit1> || typ = typeof<Bit>
                 ->
                 InferedType.Primitive(typeof<int>, unit, optional, shouldOverrideOnMerge, originalType)
-            | InferedType.Primitive (typ, unit, optional, shouldOverrideOnMerge, originalType) when typ = typeof<Bit> ->
-                InferedType.Primitive(typeof<bool>, unit, optional, shouldOverrideOnMerge, originalType)
             | x -> x
 
         let inferedType = normalize true inferedType

@@ -20,7 +20,8 @@ let getConversionQuotation missingValuesStr cultureStr typ (value: Expr<JsonValu
         <@@ JsonRuntime2.ConvertString(cultureStr, %value) @@>
     elif typ = typeof<int>
          || typ = typeof<Bit0>
-         || typ = typeof<Bit1> then
+         || typ = typeof<Bit1>
+         || typ = typeof<Bit> then
         <@@ JsonRuntime2.ConvertInteger(cultureStr, %value) @@>
     elif typ = typeof<int64> then
         <@@ JsonRuntime2.ConvertInteger64(cultureStr, %value) @@>
@@ -28,7 +29,7 @@ let getConversionQuotation missingValuesStr cultureStr typ (value: Expr<JsonValu
         <@@ JsonRuntime2.ConvertDecimal(cultureStr, %value) @@>
     elif typ = typeof<float> then
         <@@ JsonRuntime2.ConvertFloat(cultureStr, missingValuesStr, %value) @@>
-    elif typ = typeof<bool> || typ = typeof<Bit> then
+    elif typ = typeof<bool> then
         <@@ JsonRuntime2.ConvertBoolean(%value) @@>
     elif typ = typeof<DateTimeOffset> then
         <@@ JsonRuntime2.ConvertDateTimeOffset(cultureStr, %value) @@>

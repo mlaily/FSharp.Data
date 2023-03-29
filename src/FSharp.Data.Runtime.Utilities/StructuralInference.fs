@@ -579,8 +579,8 @@ let inferPrimitiveType
 
         match value with
         | "" -> if inferEmptyAsNull then Some InferedType.Null else None
-        | Parse TextConversions.AsInteger 0 -> makePrimitive typeof<Bit0>
-        | Parse TextConversions.AsInteger 1 -> makePrimitive typeof<Bit1>
+        | Parse TextConversions.AsInteger 0 when booleanParsing = BooleanParsing.Lax -> makePrimitive typeof<Bit0>
+        | Parse TextConversions.AsInteger 1 when booleanParsing = BooleanParsing.Lax -> makePrimitive typeof<Bit1>
         | ParseNoCulture (TextConversions.AsBoolean booleanParsing) _ -> makePrimitive typeof<bool>
         | Parse TextConversions.AsInteger _ -> makePrimitive typeof<int>
         | Parse TextConversions.AsInteger64 _ -> makePrimitive typeof<int64>

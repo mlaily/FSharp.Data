@@ -34,10 +34,6 @@ let rec internal inferType unitsOfMeasureProvider inferenceMode cultureInfo pare
     | JsonValue2.String s ->
         StructuralInference.inferPrimitiveType unitsOfMeasureProvider inferenceMode cultureInfo s None false BooleanParsing.Strict
     // For numbers, we test if it is integer and if it fits in smaller range
-    | JsonValue2.Number 0M when shouldInferNonStringFromValue ->
-        InferedType.Primitive(typeof<Bit0>, None, false, false, PrimitiveType.Number)
-    | JsonValue2.Number 1M when shouldInferNonStringFromValue ->
-        InferedType.Primitive(typeof<Bit1>, None, false, false, PrimitiveType.Number)
     | JsonValue2.Number n when
         shouldInferNonStringFromValue
         && inRangeDecimal Int32.MinValue Int32.MaxValue n
