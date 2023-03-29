@@ -205,7 +205,11 @@ type JsonRuntime2 =
 
     /// Get optional json property
     static member TryGetPropertyUnpacked(doc: IJsonDocument2, name) =
-        doc.JsonValue.TryGetProperty(name)
+        match doc.JsonValue with
+            | JsonValue2.Record properties ->
+                Array.tryFind (fst >> (=) name) properties
+                |> Option.map snd
+            | _ -> None
         |> Option.bind (function
             | JsonValue2.Null
             | JsonValue2.String "" -> None

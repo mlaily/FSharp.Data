@@ -13,7 +13,6 @@
   <ItemGroup>
     <Compile Include="JsonValue2.fs" />
     <Compile Include="JsonConversions2.fs" />
-    <Compile Include="JsonExtensions2.fs" />
     <Compile Include="JsonDocument2.fs" />
     <Compile Include="JsonRuntime2.fs" />
     <Compile Include="JsonInference2.fs" />
