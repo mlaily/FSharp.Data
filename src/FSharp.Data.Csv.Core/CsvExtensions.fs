@@ -1,4 +1,4 @@
-﻿/// Unsafe extension methods that can be used to work with CsvRow in a less safe, but shorter way.
+/// Unsafe extension methods that can be used to work with CsvRow in a less safe, but shorter way.
 /// This module also provides the dynamic operator.
 namespace FSharp.Data
 
@@ -48,7 +48,7 @@ type StringExtensions =
 
     [<Extension>]
     static member AsBoolean(x: String) =
-        match TextConversions.AsBoolean x with
+        match TextConversions.AsBoolean BooleanParsing.Lax x with
         | Some b -> b
         | _ -> failwithf "Not a boolean: %s" x
 

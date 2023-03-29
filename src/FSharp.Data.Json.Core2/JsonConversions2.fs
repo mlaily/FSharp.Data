@@ -78,7 +78,7 @@ type JsonConversions2 =
         | JsonValue2.Boolean b -> Some b
         | JsonValue2.Number 1M -> Some true
         | JsonValue2.Number 0M -> Some false
-        | JsonValue2.String s -> TextConversions.AsBoolean s
+        | JsonValue2.String s -> TextConversions.AsBoolean BooleanParsing.Strict s
         | _ -> None
 
     static member AsDateTimeOffset cultureInfo =

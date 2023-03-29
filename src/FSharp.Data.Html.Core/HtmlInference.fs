@@ -6,6 +6,7 @@ open System.Globalization
 open FSharp.Data.Runtime
 open FSharp.Data.Runtime.StructuralInference
 open FSharp.Data.Runtime.StructuralTypes
+open FSharp.Data
 
 type internal Parameters =
     { MissingValues: string[]
@@ -74,6 +75,7 @@ let internal inferListType parameters (values: string[]) =
                     value
                     None
                     true
+                    BooleanParsing.Lax
 
         values
         |> Array.map inferedtype

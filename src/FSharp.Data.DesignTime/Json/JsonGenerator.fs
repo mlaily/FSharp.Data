@@ -443,7 +443,8 @@ module JsonTypeBuilder =
                                       (TextRuntime.GetCulture ctx.CultureStr)
                                       prop.Name
                                       None
-                                      true ]
+                                      true
+                                      BooleanParsing.Lax ]
                             |> aggr
 
                         match infKeyType with

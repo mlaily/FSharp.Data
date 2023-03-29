@@ -127,7 +127,7 @@ let internal inferCellType
     elif String.IsNullOrWhiteSpace value then
         InferedType.Null
     else
-        StructuralInference.inferPrimitiveType unitsOfMeasureProvider inferenceMode cultureInfo value unit true
+        StructuralInference.inferPrimitiveType unitsOfMeasureProvider inferenceMode cultureInfo value unit true BooleanParsing.Lax
 
 let internal parseHeaders headers numberOfColumns schema unitsOfMeasureProvider =
 

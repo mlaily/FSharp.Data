@@ -90,6 +90,7 @@ type JsonAnonymizer(?propertiesToSkip, ?valuesToSkip) =
                     s
                     None
                     true
+                    BooleanParsing.Lax
 
             (if typ |> isType typeof<Guid> then
                  Guid.NewGuid().ToString()
@@ -118,6 +119,7 @@ type JsonAnonymizer(?propertiesToSkip, ?valuesToSkip) =
                     (d.ToString())
                     None
                     true
+                    BooleanParsing.Lax
 
             if typ |> isType typeof<Runtime.StructuralTypes.Bit0>
                || typ |> isType typeof<Runtime.StructuralTypes.Bit1> then

@@ -47,6 +47,10 @@ module private Helpers =
 
 // --------------------------------------------------------------------------------------
 
+type BooleanParsing =
+    | Lax
+    | Strict
+
 /// Conversions from string to string/int/int64/decimal/float/boolean/datetime/timespan/guid options
 type TextConversions private () =
 
@@ -128,15 +132,22 @@ type TextConversions private () =
                 else
                     Some f)
 
-    static member AsBoolean(text: string) =
-        match text.Trim() with
-        | StringEqualsIgnoreCase "true"
-        | StringEqualsIgnoreCase "yes"
-        | StringEqualsIgnoreCase "1" -> Some true
-        | StringEqualsIgnoreCase "false"
-        | StringEqualsIgnoreCase "no"
-        | StringEqualsIgnoreCase "0" -> Some false
-        | _ -> None
+    static member AsBoolean mode (text: string) =
+        match mode with
+        | BooleanParsing.Lax -> 
+            match text.Trim() with
+            | StringEqualsIgnoreCase "true"
+            | StringEqualsIgnoreCase "yes"
+            | StringEqualsIgnoreCase "1" -> Some true
+            | StringEqualsIgnoreCase "false"
+            | StringEqualsIgnoreCase "no"
+            | StringEqualsIgnoreCase "0" -> Some false
+            | _ -> None
+        | BooleanParsing.Strict ->
+            match text.Trim() with
+            | StringEqualsIgnoreCase "true" -> Some true
+            | StringEqualsIgnoreCase "false" -> Some false
+            | _ -> None
 
     /// Parse date time using either the JSON milliseconds format or using ISO 8601
     /// that is, either `/Date(<msec-since-1/1/1970>)/` or something

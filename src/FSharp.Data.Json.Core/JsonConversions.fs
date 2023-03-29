@@ -1,4 +1,4 @@
-﻿// --------------------------------------------------------------------------------------
+// --------------------------------------------------------------------------------------
 // Helper operations for converting converting json values to other types
 // --------------------------------------------------------------------------------------
 
@@ -78,7 +78,7 @@ type JsonConversions =
         | JsonValue.Boolean b -> Some b
         | JsonValue.Number 1M -> Some true
         | JsonValue.Number 0M -> Some false
-        | JsonValue.String s -> TextConversions.AsBoolean s
+        | JsonValue.String s -> TextConversions.AsBoolean BooleanParsing.Lax s
         | _ -> None
 
     static member AsDateTimeOffset cultureInfo =

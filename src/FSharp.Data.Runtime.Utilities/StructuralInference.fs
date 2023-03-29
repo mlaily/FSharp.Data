@@ -543,6 +543,7 @@ let inferPrimitiveType
     (value: string)
     (desiredUnit: Type option)
     (inferEmptyAsNull: bool)
+    (booleanParsing: BooleanParsing)
     =
 
     // Helper for calling TextConversions.AsXyz functions
@@ -580,7 +581,7 @@ let inferPrimitiveType
         | "" -> if inferEmptyAsNull then Some InferedType.Null else None
         | Parse TextConversions.AsInteger 0 -> makePrimitive typeof<Bit0>
         | Parse TextConversions.AsInteger 1 -> makePrimitive typeof<Bit1>
-        | ParseNoCulture TextConversions.AsBoolean _ -> makePrimitive typeof<bool>
+        | ParseNoCulture (TextConversions.AsBoolean booleanParsing) _ -> makePrimitive typeof<bool>
         | Parse TextConversions.AsInteger _ -> makePrimitive typeof<int>
         | Parse TextConversions.AsInteger64 _ -> makePrimitive typeof<int64>
         | Parse TextConversions.AsTimeSpan _ -> makePrimitive typeof<TimeSpan>
@@ -640,4 +641,4 @@ let inferPrimitiveType
 /// Infers the type of a simple string value
 [<Obsolete("This API will be made internal in a future release. Please file an issue at https://github.com/fsprojects/FSharp.Data/issues/1458 if you need this public.")>]
 let getInferedTypeFromString unitsOfMeasureProvider inferenceMode cultureInfo value unit =
-    inferPrimitiveType unitsOfMeasureProvider inferenceMode cultureInfo value unit true
+    inferPrimitiveType unitsOfMeasureProvider inferenceMode cultureInfo value unit true BooleanParsing.Lax

@@ -7,7 +7,7 @@ open FSharp.Data
 
 [<Test>]
 let ``Boolean conversions``() = 
-  let asBoolean = TextConversions.AsBoolean
+  let asBoolean = TextConversions.AsBoolean BooleanParsing.Lax
 
   asBoolean "yEs"  |> should equal (Some true)
   asBoolean "trUe" |> should equal (Some true)
