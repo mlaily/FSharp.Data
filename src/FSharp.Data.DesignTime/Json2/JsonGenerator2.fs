@@ -466,7 +466,8 @@ module JsonTypeBuilder2 =
                                       ctx.InferenceMode
                                       (TextRuntime.GetCulture ctx.CultureStr)
                                       prop.Name
-                                      None ]
+                                      None
+                                      false ]
                             |> aggr
 
                         match infKeyType with

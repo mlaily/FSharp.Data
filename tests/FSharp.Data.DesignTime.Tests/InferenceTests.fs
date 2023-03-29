@@ -373,7 +373,7 @@ let ``Doesn't infer 12-002 as a date``() =
 
 [<Test>]
 let ``Doesn't infer ad3mar as a date``() =
-  StructuralInference.inferPrimitiveType unitsOfMeasureProvider inferenceMode CultureInfo.InvariantCulture "ad3mar" None
+  StructuralInference.inferPrimitiveType unitsOfMeasureProvider inferenceMode CultureInfo.InvariantCulture "ad3mar" None true
   |> should equal (InferedType.Primitive(typeof<string>, None, false, false, PrimitiveType.String))
 
 [<Test>]

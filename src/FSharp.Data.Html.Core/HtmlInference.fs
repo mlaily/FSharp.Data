@@ -73,6 +73,7 @@ let internal inferListType parameters (values: string[]) =
                     parameters.CultureInfo
                     value
                     None
+                    true
 
         values
         |> Array.map inferedtype

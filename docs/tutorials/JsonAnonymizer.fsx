@@ -89,6 +89,7 @@ type JsonAnonymizer(?propertiesToSkip, ?valuesToSkip) =
                     CultureInfo.InvariantCulture
                     s
                     None
+                    true
 
             (if typ |> isType typeof<Guid> then
                  Guid.NewGuid().ToString()
@@ -116,6 +117,7 @@ type JsonAnonymizer(?propertiesToSkip, ?valuesToSkip) =
                     CultureInfo.InvariantCulture
                     (d.ToString())
                     None
+                    true
 
             if typ |> isType typeof<Runtime.StructuralTypes.Bit0>
                || typ |> isType typeof<Runtime.StructuralTypes.Bit1> then

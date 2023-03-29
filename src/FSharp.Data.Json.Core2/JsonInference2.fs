@@ -32,7 +32,7 @@ let rec internal inferType unitsOfMeasureProvider inferenceMode cultureInfo pare
     | JsonValue2.Null -> InferedType.Null
     | JsonValue2.Boolean _ -> InferedType.Primitive(typeof<bool>, None, false, false, PrimitiveType.Bool)
     | JsonValue2.String s ->
-        StructuralInference.inferPrimitiveType unitsOfMeasureProvider inferenceMode cultureInfo s None
+        StructuralInference.inferPrimitiveType unitsOfMeasureProvider inferenceMode cultureInfo s None false
     // For numbers, we test if it is integer and if it fits in smaller range
     | JsonValue2.Number 0M when shouldInferNonStringFromValue ->
         InferedType.Primitive(typeof<Bit0>, None, false, false, PrimitiveType.Number)
