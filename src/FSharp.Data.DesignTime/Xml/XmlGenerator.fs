@@ -72,14 +72,9 @@ module internal XmlTypeBuilder =
     /// children types (both may be empty)
     let (|ContentType|_|) inferedProp =
 
-        let inOrder order types =
-            types
-            |> Map.toList
-            |> List.sortBy (fun (tag, _) -> List.findIndex ((=) tag) order)
-
         match inferedProp with
         | { Type = (InferedType.Primitive _ | InferedType.Json _) as typ } -> Some([ typ ], [])
-        | { Type = InferedType.Collection (order, types, _) } -> Some([], inOrder order types)
+        | { Type = InferedType.Collection (order, types, _) } -> Some([], InferedCollection.inOrder order types)
         | { Type = InferedType.Heterogeneous (cases, _) } ->
             let collections, others =
                 Map.toList cases
@@ -87,7 +82,7 @@ module internal XmlTypeBuilder =
 
             match collections with
             | [ InferedTypeTag.Collection, InferedType.Collection (order, types, _) ] ->
-                Some(List.map snd others, inOrder order types)
+                Some(List.map snd others, InferedCollection.inOrder order types)
             | [] -> Some(List.map snd others, [])
             | _ -> failwith "(|ContentType|_|): Only one collection type expected"
         // an empty element

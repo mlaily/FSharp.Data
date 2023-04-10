@@ -199,6 +199,7 @@ let private (|SubtypePrimitives|_|) allowEmptyValues =
             let unit = if u1 = u2 then u1 else None
 
             let optional =
+                // Note empty values ("", NaN, etc) are not the same as optional values.
                 if allowEmptyValues && InferedType.CanHaveEmptyValues t then
                     Mandatory
                 else
@@ -223,6 +224,7 @@ let private (|SubtypePrimitives|_|) allowEmptyValues =
 /// The contract that should hold about the function is that given two types with the
 /// same `InferedTypeTag`, the result also has the same `InferedTypeTag`.
 ///
+/// allowEmptyValues: should empty values ("", NaN, etc) be allowed, or should we prefer options?
 let rec internal subtypeInfered allowEmptyValues ot1 ot2 =
     match ot1, ot2 with
     // Subtype of matching types or one of equal types

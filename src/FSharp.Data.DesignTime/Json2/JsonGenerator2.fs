@@ -193,7 +193,7 @@ module JsonTypeBuilder2 =
         types
         forCollection
         nameOverride
-        (codeGenerator: _ -> _ -> _ -> Expr)
+        (getterCodeGenerator: _ -> _ -> _ -> Expr)
         =
 
         let types =
@@ -276,7 +276,7 @@ module JsonTypeBuilder2 =
                           result.ConvertedType.MakeArrayType(),
                           (replaceJDocWithJValue ctx result.ConvertedType).MakeArrayType()
 
-                  ProvidedProperty(name, typ, getterCode = codeGenerator result tag.Code),
+                  ProvidedProperty(name, typ, getterCode = getterCodeGenerator result tag.Code),
                   ProvidedParameter(NameUtils.niceCamelName name, constructorType),
                   findOriginalPrimitiveType inferedType ]
 

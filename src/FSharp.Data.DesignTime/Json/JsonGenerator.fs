@@ -176,7 +176,7 @@ module JsonTypeBuilder =
         types
         forCollection
         nameOverride
-        (codeGenerator: _ -> _ -> _ -> _ -> Expr)
+        (getterCodeGenerator: _ -> _ -> _ -> _ -> Expr)
         =
 
         let types =
@@ -262,7 +262,7 @@ module JsonTypeBuilder =
                           result.ConvertedType.MakeArrayType(),
                           (replaceJDocWithJValue ctx result.ConvertedType).MakeArrayType()
 
-                  ProvidedProperty(name, typ, getterCode = codeGenerator multiplicity result tag.Code),
+                  ProvidedProperty(name, typ, getterCode = getterCodeGenerator multiplicity result tag.Code),
                   ProvidedParameter(NameUtils.niceCamelName name, constructorType) ]
 
         let properties, parameters = List.unzip members
@@ -353,7 +353,10 @@ module JsonTypeBuilder =
               OptionalConverter = None
               ConversionCallingType = JsonDocument }
 
+        // If the collection contains a single type, avoid generating an extra property to access it.
+        // (Otherwise, a multiple choice type will be generated)
         | InferedType.Collection (_, SingletonMap (_, (_, typ)), _)
+        // If the collection is empty, assume it can contain anything:
         | InferedType.Collection (_, EmptyMap InferedType.Top typ, _) ->
 
             let elementResult = generateJsonType ctx false false nameOverride typ

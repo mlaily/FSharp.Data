@@ -122,6 +122,12 @@ type OptionalCollection =
     | Disallow
     | Allow
 
+module internal InferedCollection =
+    let inOrder order types =
+        types
+        |> Map.toList
+        |> List.sortBy (fun (tag, _) -> List.findIndex ((=) tag) order)
+
 /// Represents inferred structural type. A type may be either primitive type
 /// (one of those listed by `primitiveTypes`) or it can be collection,
 /// (named) record and heterogeneous type. We also have `Null` type (which is
@@ -277,15 +283,11 @@ type InferedType =
                 walk iTyp
                 indented ("}") |> ignore
             | Collection (order, types, optional) ->
-                let inOrder order types =
-                    types
-                    |> Map.toList
-                    |> List.sortBy (fun (tag, _) -> List.findIndex ((=) tag) order)
 
                 indented ($"[*Array* Optional: {optional}") |> ignore
                 pushIndent ()
 
-                for (typTag, (multiplicity, inferedType)) in inOrder order types do
+                for (typTag, (multiplicity, inferedType)) in InferedCollection.inOrder order types do
                     indented ($"- Item (Tag: {typTag}, Multiplicity: %A{multiplicity})")
                     |> ignore
 
