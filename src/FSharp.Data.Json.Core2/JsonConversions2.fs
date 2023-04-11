@@ -17,17 +17,13 @@ module private Helpers =
 /// Conversions from JsonValue to string/int/int64/decimal/float/boolean/datetime/datetimeoffset/timespan/guid options
 type JsonConversions2 =
 
-    static member AsString useNoneForNullOrEmpty (cultureInfo: IFormatProvider) =
+    static member AsString (cultureInfo: IFormatProvider) =
         function
-        | JsonValue2.String s ->
-            if useNoneForNullOrEmpty && String.IsNullOrEmpty s then
-                None
-            else
-                Some s
+        | JsonValue2.String s -> Option.ofObj s
         | JsonValue2.Boolean b -> Some(if b then "true" else "false")
         | JsonValue2.Number n -> n.ToString(cultureInfo) |> Some
         | JsonValue2.Float f -> f.ToString(cultureInfo) |> Some
-        | JsonValue2.Null when not useNoneForNullOrEmpty -> Some ""
+        | JsonValue2.Null
         | _ -> None
 
     static member AsInteger cultureInfo =
@@ -66,18 +62,16 @@ type JsonConversions2 =
         | JsonValue2.String s -> TextConversions.AsDecimal cultureInfo s
         | _ -> None
 
-    static member AsFloat missingValues useNoneForMissingValues cultureInfo =
+    static member AsFloat cultureInfo =
         function
         | JsonValue2.Number n -> Some(float n)
         | JsonValue2.Float n -> Some n
-        | JsonValue2.String s -> TextConversions.AsFloat missingValues useNoneForMissingValues cultureInfo s
+        | JsonValue2.String s -> TextConversions.AsFloat [||] true cultureInfo s
         | _ -> None
 
     static member AsBoolean =
         function
         | JsonValue2.Boolean b -> Some b
-        | JsonValue2.Number 1M -> Some true
-        | JsonValue2.Number 0M -> Some false
         | JsonValue2.String s -> TextConversions.AsBoolean BooleanParsing.Strict s
         | _ -> None
 

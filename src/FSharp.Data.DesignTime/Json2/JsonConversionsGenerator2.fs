@@ -15,7 +15,7 @@ open ProviderImplementation.QuotationBuilder
 
 #nowarn "10001"
 
-let getConversionQuotation missingValuesStr cultureStr typ (value: Expr<JsonValue2 option>) =
+let getConversionQuotation cultureStr typ (value: Expr<JsonValue2 option>) =
     if typ = typeof<string> then
         <@@ JsonRuntime2.ConvertString(cultureStr, %value) @@>
     elif typ = typeof<int>
@@ -28,7 +28,7 @@ let getConversionQuotation missingValuesStr cultureStr typ (value: Expr<JsonValu
     elif typ = typeof<decimal> then
         <@@ JsonRuntime2.ConvertDecimal(cultureStr, %value) @@>
     elif typ = typeof<float> then
-        <@@ JsonRuntime2.ConvertFloat(cultureStr, missingValuesStr, %value) @@>
+        <@@ JsonRuntime2.ConvertFloat(cultureStr, %value) @@>
     elif typ = typeof<bool> then
         <@@ JsonRuntime2.ConvertBoolean(%value) @@>
     elif typ = typeof<DateTimeOffset> then
@@ -50,7 +50,6 @@ type internal JsonConversionCallingType2 =
 /// Creates a function that takes Expr<JsonValue option> and converts it to
 /// an expression of other type - the type is specified by `field`
 let internal convertJsonValue
-    missingValuesStr
     cultureStr
     canPassAllConversionCallingTypes
     (field: PrimitiveInferedValue)
@@ -74,7 +73,7 @@ let internal convertJsonValue
 
     let convert (value: Expr) =
         let convert value =
-            getConversionQuotation missingValuesStr cultureStr field.InferedType value
+            getConversionQuotation cultureStr field.InferedType value
 
         match field.TypeWrapper, canPassAllConversionCallingTypes with
         | TypeWrapper.None, true ->

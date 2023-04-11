@@ -24,7 +24,7 @@ type JsonRuntime2 =
 
     static member ConvertString(cultureStr, json) =
         json
-        |> Option.bind (JsonConversions2.AsString true (TextRuntime.GetCulture cultureStr))
+        |> Option.bind (JsonConversions2.AsString (TextRuntime.GetCulture cultureStr))
 
     static member ConvertInteger(cultureStr, json) =
         json
@@ -38,14 +38,9 @@ type JsonRuntime2 =
         json
         |> Option.bind (JsonConversions2.AsDecimal(TextRuntime.GetCulture cultureStr))
 
-    static member ConvertFloat(cultureStr, missingValuesStr, json) =
+    static member ConvertFloat(cultureStr, json) =
         json
-        |> Option.bind (
-            JsonConversions2.AsFloat
-                (TextRuntime.GetMissingValues missingValuesStr)
-                true
-                (TextRuntime.GetCulture cultureStr)
-        )
+        |> Option.bind (JsonConversions2.AsFloat(TextRuntime.GetCulture cultureStr))
 
     static member ConvertBoolean(json) =
         json |> Option.bind JsonConversions2.AsBoolean
@@ -66,8 +61,6 @@ type JsonRuntime2 =
         json |> Option.bind JsonConversions2.AsGuid
 
     /// Operation that extracts the value from an option and reports a meaningful error message when the value is not there
-    /// If the originalValue is a scalar, for missing strings we return "", and for missing doubles we return NaN
-    /// For other types an error is thrown
     static member GetNonOptionalValue<'T>(path: string, opt: option<'T>, originalValue) : 'T =
         let getTypeName () =
             let name = typeof<'T>.Name
@@ -84,8 +77,6 @@ type JsonRuntime2 =
           | JsonValue2.Record _) as x) ->
             failwithf "Expecting %s at '%s', got %s" (getTypeName ()) path
             <| x.ToString(JsonSaveOptions2.DisableFormatting)
-        | None, _ when typeof<'T> = typeof<string> -> "" |> unbox
-        | None, _ when typeof<'T> = typeof<float> -> Double.NaN |> unbox
         | None, None -> failwithf "'%s' is missing" path
         | None, Some x ->
             failwithf "Expecting %s at '%s', got %s" (getTypeName ()) path
@@ -211,8 +202,7 @@ type JsonRuntime2 =
                 |> Option.map snd
             | _ -> None
         |> Option.bind (function
-            | JsonValue2.Null
-            | JsonValue2.String "" -> None
+            | JsonValue2.Null -> None
             | x -> Some x)
 
     /// Get optional json property and wrap it together with path
@@ -251,10 +241,10 @@ type JsonRuntime2 =
 
             fun json ->
                 (JsonConversions2.AsDecimal cultureInfo json).IsSome
-                || (JsonConversions2.AsFloat [||] true cultureInfo json).IsSome
+                || (JsonConversions2.AsFloat cultureInfo json).IsSome
         | InferedTypeTag.Boolean -> JsonConversions2.AsBoolean >> Option.isSome
         | InferedTypeTag.String ->
-            JsonConversions2.AsString true (TextRuntime.GetCulture cultureStr)
+            JsonConversions2.AsString (TextRuntime.GetCulture cultureStr)
             >> Option.isSome
         | InferedTypeTag.DateTime ->
             let cultureInfo = TextRuntime.GetCulture cultureStr
