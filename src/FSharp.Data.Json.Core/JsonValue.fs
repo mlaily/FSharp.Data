@@ -26,6 +26,11 @@ type JsonSaveOptions =
     /// Print the JsonValue in one line in a compact way
     | DisableFormatting = 1
 
+    /// Print the JsonValue in one line in a compact way,
+    /// but place a single space after every comma
+    /// https://github.com/fsprojects/FSharp.Data/issues/1482
+    | CompactSpaceAfterComma = 2
+
 /// Represents a JSON value. Large numbers that do not fit in the
 /// Decimal type are represented using the Float case, while
 /// smaller numbers are represented as decimals to avoid precision loss.
@@ -67,6 +72,13 @@ type JsonValue =
 
         let propSep = if saveOptions = JsonSaveOptions.None then "\": " else "\":"
 
+        let comma () =
+            match saveOptions with
+            | JsonSaveOptions.None -> w.Write ","
+            | JsonSaveOptions.DisableFormatting -> w.Write ","
+            | JsonSaveOptions.CompactSpaceAfterComma -> w.Write ", "
+            | _ -> failwith "Invalid JsonSaveOptions"
+
         let rec serialize indentation =
             function
             | Null -> w.Write "null"
@@ -83,7 +95,7 @@ type JsonValue =
 
                 for i = 0 to properties.Length - 1 do
                     let k, v = properties.[i]
-                    if i > 0 then w.Write ","
+                    if i > 0 then comma ()
                     newLine indentation 2
                     w.Write "\""
                     JsonValue.JsonStringEncodeTo w k
@@ -96,7 +108,7 @@ type JsonValue =
                 w.Write "["
 
                 for i = 0 to elements.Length - 1 do
-                    if i > 0 then w.Write ","
+                    if i > 0 then comma ()
                     newLine indentation 2
                     serialize (indentation + 2) elements.[i]
 
@@ -288,8 +300,8 @@ type private JsonParser(jsonText: string) =
                     ensure (i + 9 < s.Length)
 
                     let unicodeChar (s: string) =
-                        if s.Length <> 8 then failwith "unicodeChar"
-                        if s.[0..1] <> "00" then failwith "unicodeChar"
+                        if s.Length <> 8 then failwithf "unicodeChar (%O)" s
+                        if s.[0..1] <> "00" then failwithf "unicodeChar (%O)" s
 
                         UnicodeHelper.getUnicodeSurrogatePair
                         <| System.UInt32.Parse(s, NumberStyles.HexNumber)

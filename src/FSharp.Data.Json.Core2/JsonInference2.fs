@@ -41,7 +41,7 @@ let rec internal inferType unitsOfMeasureProvider inferenceMode cultureInfo pare
                 Some parentName
 
         let props =
-            [ for KeyValue(propName, value) in obj ->
+            [ for KeyValue (propName, value) in obj ->
                   let t = inferType unitsOfMeasureProvider inferenceMode cultureInfo propName value
                   { Name = propName; Type = t } ]
 
@@ -58,39 +58,47 @@ let rec internal inferType unitsOfMeasureProvider inferenceMode cultureInfo pare
             match element.ValueKind with
             | JsonValueKind.True
             | JsonValueKind.False -> InferedType.Primitive(typeof<bool>, None, Mandatory, false, PrimitiveType.Bool)
-            | JsonValueKind.String -> StructuralInference.inferPrimitiveType unitsOfMeasureProvider inferenceMode cultureInfo (element.GetString()) None false BooleanParsing.Strict
-            | JsonValueKind.Number -> InferedType.Primitive(typeof<decimal>, None, Mandatory, false, PrimitiveType.Number)
+            | JsonValueKind.String ->
+                StructuralInference.inferPrimitiveType
+                    unitsOfMeasureProvider
+                    inferenceMode
+                    cultureInfo
+                    (element.GetString())
+                    None
+                    false
+                    BooleanParsing.Strict
+            | JsonValueKind.Number ->
+                InferedType.Primitive(typeof<decimal>, None, Mandatory, false, PrimitiveType.Number)
             | other -> failwith $"Unexpected JsonValueKind: {other}"
         | false, other -> failwith $"Unexpected element (not a JsonElement): {other.GetType()}" // TODO (can only happen when json values have been manually created (not from parsing))
 
-    | shouldNotBePossible -> failwith $"node implementation was of an unexpected type ({shouldNotBePossible.GetType()})."
+    | shouldNotBePossible ->
+        failwith $"node implementation was of an unexpected type ({shouldNotBePossible.GetType()})."
 
-    //// For numbers, we test if it is integer and if it fits in smaller range
-    //| JsonValue2.Number n when
-    //    shouldInferNonStringFromValue
-    //    && inRangeDecimal Int32.MinValue Int32.MaxValue n
-    //    && isIntegerDecimal n
-    //    ->
-    //    InferedType.Primitive(typeof<int>, None, Mandatory, false, PrimitiveType.Number)
-    //| JsonValue2.Number n when
-    //    shouldInferNonStringFromValue
-    //    && inRangeDecimal Int64.MinValue Int64.MaxValue n
-    //    && isIntegerDecimal n
-    //    ->
-    //    InferedType.Primitive(typeof<int64>, None, Mandatory, false, PrimitiveType.Number)
-    //| JsonValue2.Number _ -> InferedType.Primitive(typeof<decimal>, None, Mandatory, false, PrimitiveType.Number)
-    //| JsonValue2.Float f when
-    //    shouldInferNonStringFromValue
-    //    && inRangeFloat Int32.MinValue Int32.MaxValue f
-    //    && isIntegerFloat f
-    //    ->
-    //    InferedType.Primitive(typeof<int>, None, Mandatory, false, PrimitiveType.Number)
-    //| JsonValue2.Float f when
-    //    shouldInferNonStringFromValue
-    //    && inRangeFloat Int64.MinValue Int64.MaxValue f
-    //    && isIntegerFloat f
-    //    ->
-    //    InferedType.Primitive(typeof<int64>, None, Mandatory, false, PrimitiveType.Number)
-    //| JsonValue2.Float _ -> InferedType.Primitive(typeof<float>, None, Mandatory, false, PrimitiveType.Number)
-
-
+//// For numbers, we test if it is integer and if it fits in smaller range
+//| JsonValue2.Number n when
+//    shouldInferNonStringFromValue
+//    && inRangeDecimal Int32.MinValue Int32.MaxValue n
+//    && isIntegerDecimal n
+//    ->
+//    InferedType.Primitive(typeof<int>, None, Mandatory, false, PrimitiveType.Number)
+//| JsonValue2.Number n when
+//    shouldInferNonStringFromValue
+//    && inRangeDecimal Int64.MinValue Int64.MaxValue n
+//    && isIntegerDecimal n
+//    ->
+//    InferedType.Primitive(typeof<int64>, None, Mandatory, false, PrimitiveType.Number)
+//| JsonValue2.Number _ -> InferedType.Primitive(typeof<decimal>, None, Mandatory, false, PrimitiveType.Number)
+//| JsonValue2.Float f when
+//    shouldInferNonStringFromValue
+//    && inRangeFloat Int32.MinValue Int32.MaxValue f
+//    && isIntegerFloat f
+//    ->
+//    InferedType.Primitive(typeof<int>, None, Mandatory, false, PrimitiveType.Number)
+//| JsonValue2.Float f when
+//    shouldInferNonStringFromValue
+//    && inRangeFloat Int64.MinValue Int64.MaxValue f
+//    && isIntegerFloat f
+//    ->
+//    InferedType.Primitive(typeof<int64>, None, Mandatory, false, PrimitiveType.Number)
+//| JsonValue2.Float _ -> InferedType.Primitive(typeof<float>, None, Mandatory, false, PrimitiveType.Number)

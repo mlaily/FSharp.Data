@@ -134,7 +134,7 @@ type TextConversions private () =
 
     static member AsBoolean mode (text: string) =
         match mode with
-        | BooleanParsing.Lax -> 
+        | BooleanParsing.Lax ->
             match text.Trim() with
             | StringEqualsIgnoreCase "true"
             | StringEqualsIgnoreCase "yes"

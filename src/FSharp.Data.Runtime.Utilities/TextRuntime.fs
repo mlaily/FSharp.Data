@@ -20,7 +20,7 @@ type TextRuntime =
         else
             let mutable cache = TextRuntime.cultureInfoCache
 
-            if cache = null then
+            if isNull cache then
                 cache <- Dictionary<string, CultureInfo>()
                 TextRuntime.cultureInfoCache <- cache
 
@@ -64,7 +64,8 @@ type TextRuntime =
         )
 
     static member ConvertBoolean(text) =
-        text |> Option.bind (TextConversions.AsBoolean BooleanParsing.Lax)
+        text
+        |> Option.bind (TextConversions.AsBoolean BooleanParsing.Lax)
 
     static member ConvertDateTime(cultureStr, text) =
         text

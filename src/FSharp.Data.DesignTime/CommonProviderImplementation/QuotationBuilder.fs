@@ -61,7 +61,7 @@ let (?) (typ: Type) (operation: string) (typeArgs: 'T) (argValues: 'U) : Expr =
         match typ.GetMember(operation, MemberTypes.All, flags) with
         | [| :? MethodInfo as mi |] ->
             let mi =
-                if tyargs = [] then
+                if List.isEmpty tyargs then
                     mi
                 else
                     mi.MakeGenericMethod(tyargs |> Array.ofList)

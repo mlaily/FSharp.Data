@@ -127,8 +127,12 @@ module internal XmlTypeBuilder =
               | InferedType.Primitive (typ, unit, optional, _, _) ->
 
                   let optional = InferedOptionality.Merge(optional, forceOptional)
-                  let optionalJustBecauseThereAreMultiple = InferedOptionality.FromBool(primitives.Length > 1 && not optional.IsOptional)
-                  let optional = InferedOptionality.Merge(optional, InferedOptionality.FromBool(primitives.Length > 1))
+
+                  let optionalJustBecauseThereAreMultiple =
+                      InferedOptionality.FromBool(primitives.Length > 1 && not optional.IsOptional)
+
+                  let optional =
+                      InferedOptionality.Merge(optional, InferedOptionality.FromBool(primitives.Length > 1))
 
                   let typ, conv =
                       ctx.ConvertValue
@@ -155,8 +159,12 @@ module internal XmlTypeBuilder =
                   let result = JsonTypeBuilder.generateJsonType ctx false true "" typ
 
                   let optional = InferedOptionality.Merge(optional, forceOptional)
-                  let optionalJustBecauseThereAreMultiple = InferedOptionality.FromBool(primitives.Length > 1 && not optional.IsOptional)
-                  let optional = InferedOptionality.Merge(optional, InferedOptionality.FromBool(primitives.Length > 1))
+
+                  let optionalJustBecauseThereAreMultiple =
+                      InferedOptionality.FromBool(primitives.Length > 1 && not optional.IsOptional)
+
+                  let optional =
+                      InferedOptionality.Merge(optional, InferedOptionality.FromBool(primitives.Length > 1))
 
                   let typ =
                       if optional.IsOptional then
@@ -236,7 +244,9 @@ module internal XmlTypeBuilder =
                               fun (Singleton xml) ->
                                   // XmlRuntime.ConvertAsName checks that the name of the current element
                                   // has the required name and returns Some/None
-                                  (ctx.XmlRuntimeType?(nameof (XmlRuntime.ConvertAsName)) (result.ConvertedType) (xml, nameWithNS, convFunc): Expr)
+                                  (ctx.XmlRuntimeType?(nameof (XmlRuntime.ConvertAsName))
+                                      (result.ConvertedType)
+                                      (xml, nameWithNS, convFunc): Expr)
                       ),
                       ((if result.ConvertedType :? ProvidedTypeDefinition then
                             ""
@@ -356,7 +366,12 @@ module internal XmlTypeBuilder =
 
                                   let typ, conv =
                                       ctx.ConvertValue
-                                      <| PrimitiveInferedProperty.Create(tag.NiceName, primTyp, Optional NullKind.NoValue, unit)
+                                      <| PrimitiveInferedProperty.Create(
+                                          tag.NiceName,
+                                          primTyp,
+                                          Optional NullKind.NoValue,
+                                          unit
+                                      )
 
                                   choiceTy.AddMember
                                   <| ProvidedProperty(
@@ -439,7 +454,8 @@ module internal XmlTypeBuilder =
                                                                                                           (_,
                                                                                                            InferedType.Record (Some childNameWithNS2,
                                                                                                                                _,
-                                                                                                                               Mandatory) as multiplicityAndType)), _) } ],
+                                                                                                                               Mandatory) as multiplicityAndType)),
+                                                                                            _) } ],
                                                          Mandatory)) when
                                       parentNameWithNS = parentNameWithNS2
                                       && childNameWithNS = childNameWithNS2

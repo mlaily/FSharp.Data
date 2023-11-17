@@ -86,8 +86,10 @@ module XsdParsing =
                 let items = System.Collections.Generic.HashSet()
 
                 let rec collect elm =
-                    if subst.ContainsKey elm then
-                        for x in subst.Item elm do
+                    match subst.TryGetValue elm with
+                    | false, _ -> ()
+                    | true, substVal ->
+                        for x in substVal do
                             if items.Add x then collect x
 
                 collect elm
@@ -98,7 +100,10 @@ module XsdParsing =
                 |> Seq.map (fun x -> x, collectSubst x)
                 |> dict
 
-            fun elm -> if subst'.ContainsKey elm then subst'.Item elm else []
+            fun elm ->
+                match subst'.TryGetValue elm with
+                | true, elVal -> elVal
+                | false, _ -> []
 
 
         let elements =
@@ -268,7 +273,14 @@ module internal XsdInference =
         else
             match elm.Type with
             | SimpleType typeCode ->
-                let ty = InferedType.Primitive(getType typeCode, None, InferedOptionality.FromBool(elm.IsNillable), false, PrimitiveType.String)
+                let ty =
+                    InferedType.Primitive(
+                        getType typeCode,
+                        None,
+                        InferedOptionality.FromBool(elm.IsNillable),
+                        false,
+                        PrimitiveType.String
+                    )
 
                 let prop = { InferedProperty.Name = ""; Type = ty }
                 let props = if elm.IsNillable then [ prop; nil ] else [ prop ]
@@ -293,7 +305,14 @@ module internal XsdInference =
             cty.Attributes
             |> List.map (fun (name, typeCode, optional) ->
                 { Name = formatName name
-                  Type = InferedType.Primitive(getType typeCode, None, InferedOptionality.FromBool(optional), false, PrimitiveType.String) })
+                  Type =
+                    InferedType.Primitive(
+                        getType typeCode,
+                        None,
+                        InferedOptionality.FromBool(optional),
+                        false,
+                        PrimitiveType.String
+                    ) })
 
         match cty.Contents with
         | SimpleContent typeCode ->
@@ -304,9 +323,9 @@ module internal XsdInference =
             body :: attrs
         | ComplexContent xsdParticle ->
             let body =
-                if ctx.ContainsKey cty then
-                    ctx.Item cty
-                else
+                match ctx.TryGetValue cty with
+                | true, ctVal -> ctVal
+                | false, _ ->
                     let result =
                         { InferedProperty.Name = ""
                           Type = InferedType.Top }

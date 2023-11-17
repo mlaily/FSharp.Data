@@ -29,45 +29,48 @@ type JsonWrapper(node: JsonNode) =
     /// <exclude />
     [<EditorBrowsableAttribute(EditorBrowsableState.Never)>]
     [<CompilerMessageAttribute("This method is intended for use in generated code only.",
-                                10001,
-                                IsHidden = true,
-                                IsError = false)>]
+                               10001,
+                               IsHidden = true,
+                               IsError = false)>]
     static member ParseNode(text: string) =
         // TODO: handle possible null output?
         JsonNode.Parse(
             text,
-            documentOptions = JsonDocumentOptions(CommentHandling=JsonCommentHandling.Skip, AllowTrailingCommas=true))
+            documentOptions =
+                JsonDocumentOptions(CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true)
+        )
 
     /// <exclude />
     [<EditorBrowsableAttribute(EditorBrowsableState.Never)>]
     [<CompilerMessageAttribute("This method is intended for use in generated code only.",
-                                10001,
-                                IsHidden = true,
-                                IsError = false)>]
+                               10001,
+                               IsHidden = true,
+                               IsError = false)>]
     static member Create(reader: TextReader) =
         use reader = reader
         let text = reader.ReadToEnd()
         JsonWrapper.ParseNode(text) |> JsonWrapper
-    
+
     /// <exclude />
     [<EditorBrowsableAttribute(EditorBrowsableState.Never)>]
     [<CompilerMessageAttribute("This method is intended for use in generated code only.",
-                                10001,
-                                IsHidden = true,
-                                IsError = false)>]
+                               10001,
+                               IsHidden = true,
+                               IsError = false)>]
     static member CreateList(reader: TextReader) =
         use reader = reader
         let text = reader.ReadToEnd()
+
         match JsonWrapper.ParseNode(text) with
         | :? JsonArray as array -> [| for item in array -> JsonWrapper(item) |]
         | other -> [| JsonWrapper(other) |]
-    
-        //match JsonValue2.ParseMultiple(text) |> Seq.toArray with
-        //| [| JsonValue2.Array array |] -> array
-        //| array -> array
-        ////|> Array.mapi (fun i value -> JsonDocument2.Create(value, "[" + (string i) + "]"))
-        //[| JsonWrapper() |]
-    
+
+//match JsonValue2.ParseMultiple(text) |> Seq.toArray with
+//| [| JsonValue2.Array array |] -> array
+//| array -> array
+////|> Array.mapi (fun i value -> JsonDocument2.Create(value, "[" + (string i) + "]"))
+//[| JsonWrapper() |]
+
 
 ///// <exclude />
 //type IJsonDocument2 =

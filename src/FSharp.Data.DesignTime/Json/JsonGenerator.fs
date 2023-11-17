@@ -132,7 +132,11 @@ module JsonTypeBuilder =
                         { Name = name
                           Type = normalize false inferedType })
                 // optional only affects the parent, so at top level always set to optional regardless of the actual value
-                InferedType.Record(None, props, InferedOptionality.Merge(optional, InferedOptionality.FromBool(topLevel)))
+                InferedType.Record(
+                    None,
+                    props,
+                    InferedOptionality.Merge(optional, InferedOptionality.FromBool(topLevel))
+                )
             | InferedType.Primitive (typ, unit, optional, shouldOverrideOnMerge, originalType) when
                 typ = typeof<Bit0> || typ = typeof<Bit1>
                 ->
@@ -193,7 +197,8 @@ module JsonTypeBuilder =
             | InferedType.Null _
             | InferedType.Top
             | InferedType.Heterogeneous _ -> failwithf "generateMultipleChoiceType: Unsupported type: %A" inferedType
-            | x when x.IsExplicitlyOptional OptionalCollection.Disallow -> failwithf "generateMultipleChoiceType: Type shouldn't be optional: %A" inferedType
+            | x when x.IsExplicitlyOptional OptionalCollection.Disallow ->
+                failwithf "generateMultipleChoiceType: Type shouldn't be optional: %A" inferedType
             | _ -> ()
 
         let typeName =
@@ -374,7 +379,8 @@ module JsonTypeBuilder =
         | InferedType.Record (name, props, optional) ->
             getOrCreateType ctx inferedType (fun () ->
 
-                if optional.IsOptional && not optionalityHandledByParent then
+                if optional.IsOptional
+                   && not optionalityHandledByParent then
                     failwithf "generateJsonType: optionality not handled for %A" inferedType
 
                 let name =

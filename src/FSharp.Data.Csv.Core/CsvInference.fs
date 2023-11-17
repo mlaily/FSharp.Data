@@ -3,6 +3,7 @@ module FSharp.Data.Runtime.CsvInference
 
 open System
 open System.IO
+open System.Text
 open System.Text.RegularExpressions
 open FSharp.Data
 open FSharp.Data.Runtime
@@ -127,7 +128,14 @@ let internal inferCellType
     elif String.IsNullOrWhiteSpace value then
         InferedType.Null NullKind.NoValue
     else
-        StructuralInference.inferPrimitiveType unitsOfMeasureProvider inferenceMode cultureInfo value unit true BooleanParsing.Lax
+        StructuralInference.inferPrimitiveType
+            unitsOfMeasureProvider
+            inferenceMode
+            cultureInfo
+            value
+            unit
+            true
+            BooleanParsing.Lax
 
 let internal parseHeaders headers numberOfColumns schema unitsOfMeasureProvider =
 
@@ -145,6 +153,36 @@ let internal parseHeaders headers numberOfColumns schema unitsOfMeasureProvider 
                     header)
         | None -> Array.init numberOfColumns (fun i -> "Column" + (i + 1).ToString())
 
+    let readSchema (reader: StringReader) =
+        let schemas = ResizeArray<string>()
+        let chars = StringBuilder()
+
+        let (|Comma|_|) chr = if char chr = ',' then Some() else None
+        let (|Quote|_|) chr = if char chr = '"' then Some() else None
+        let (|Char|) c = char c
+
+        let rec iter () =
+            match reader.Read() with
+            | -1 ->
+                schemas.Add(chars.ToString())
+                ()
+            // Skips quote character ('"')
+            | Quote -> iter ()
+            // At comma(,), commits the current characters in the builder
+            | Comma ->
+                schemas.Add(chars.ToString())
+                chars.Clear() |> ignore
+                iter ()
+            // Skips CR/LF characters
+            | Char '\r'
+            | Char '\n' -> iter ()
+            | Char c ->
+                chars.Append(c) |> ignore
+                iter ()
+
+        iter ()
+        schemas
+
     // If the schema is specified explicitly, then parse the schema
     // (This can specify just types, names of columns or a mix of both)
     let schema =
@@ -153,20 +191,17 @@ let internal parseHeaders headers numberOfColumns schema unitsOfMeasureProvider 
         else
             use reader = new StringReader(schema)
 
-            let schemaStr =
-                CsvReader.readCsvFile reader "," '"'
-                |> Seq.exactlyOne
-                |> fst
+            let schemaStr = readSchema reader
 
-            if schemaStr.Length > headers.Length then
+            if schemaStr.Count > headers.Length then
                 failwithf
                     "The provided schema contains %d columns, the inference found %d columns - please check the number of columns and the separator "
-                    schemaStr.Length
+                    schemaStr.Count
                     headers.Length
 
             let schema = Array.zeroCreate headers.Length
 
-            for index = 0 to schemaStr.Length - 1 do
+            for index = 0 to schemaStr.Count - 1 do
                 let item = schemaStr.[index].Trim()
 
                 match item with
@@ -375,7 +410,12 @@ let internal getFields preferOptionals inferedType schema =
                     PrimitiveInferedProperty.Create(name, typ, typWrapper, unit)
 
                 | _ ->
-                    PrimitiveInferedProperty.Create(schemaCompleteDefinition, typeof<string>, InferedOptionality.FromBool(preferOptionals), None))
+                    PrimitiveInferedProperty.Create(
+                        schemaCompleteDefinition,
+                        typeof<string>,
+                        InferedOptionality.FromBool(preferOptionals),
+                        None
+                    ))
 
     | _ -> failwithf "inferFields: Expected record type, got %A" inferedType
 

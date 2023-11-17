@@ -32,7 +32,14 @@ let rec internal inferType unitsOfMeasureProvider inferenceMode cultureInfo pare
     | JsonValue.Null -> InferedType.Null NullKind.NoValue // Lie with the NullKind to stay backward compatible in this provider.
     | JsonValue.Boolean _ -> InferedType.Primitive(typeof<bool>, None, Mandatory, false, PrimitiveType.Bool)
     | JsonValue.String s ->
-        StructuralInference.inferPrimitiveType unitsOfMeasureProvider inferenceMode cultureInfo s None true BooleanParsing.Lax
+        StructuralInference.inferPrimitiveType
+            unitsOfMeasureProvider
+            inferenceMode
+            cultureInfo
+            s
+            None
+            true
+            BooleanParsing.Lax
     // For numbers, we test if it is integer and if it fits in smaller range
     | JsonValue.Number 0M when shouldInferNonStringFromValue ->
         InferedType.Primitive(typeof<Bit0>, None, Mandatory, false, PrimitiveType.Number)
