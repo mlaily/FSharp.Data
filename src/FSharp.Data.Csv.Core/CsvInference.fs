@@ -128,7 +128,14 @@ let internal inferCellType
     elif String.IsNullOrWhiteSpace value then
         InferedType.Null NullKind.NoValue
     else
-        StructuralInference.inferPrimitiveType unitsOfMeasureProvider inferenceMode cultureInfo value unit true BooleanParsing.Lax
+        StructuralInference.inferPrimitiveType
+            unitsOfMeasureProvider
+            inferenceMode
+            cultureInfo
+            value
+            unit
+            true
+            BooleanParsing.Lax
 
 let internal parseHeaders headers numberOfColumns schema unitsOfMeasureProvider =
 
@@ -403,7 +410,12 @@ let internal getFields preferOptionals inferedType schema =
                     PrimitiveInferedProperty.Create(name, typ, typWrapper, unit)
 
                 | _ ->
-                    PrimitiveInferedProperty.Create(schemaCompleteDefinition, typeof<string>, InferedOptionality.FromBool(preferOptionals), None))
+                    PrimitiveInferedProperty.Create(
+                        schemaCompleteDefinition,
+                        typeof<string>,
+                        InferedOptionality.FromBool(preferOptionals),
+                        None
+                    ))
 
     | _ -> failwithf "inferFields: Expected record type, got %A" inferedType
 

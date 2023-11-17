@@ -200,7 +200,8 @@ let private (|SubtypePrimitives|_|) allowEmptyValues =
 
             let optional =
                 // Note empty values ("", NaN, etc) are not the same as optional values.
-                if allowEmptyValues && InferedType.CanHaveEmptyValues t then
+                if allowEmptyValues
+                   && InferedType.CanHaveEmptyValues t then
                     Mandatory
                 else
                     InferedOptionality.Merge(o1, o2)
@@ -290,7 +291,8 @@ let rec internal subtypeInfered allowEmptyValues ot1 ot2 =
             // return only this overriding primitive (and take care to reestablish optionality if needed).
             | [ (_, singlePrimitive) ], [] ->
                 match singlePrimitive with
-                | InferedType.Primitive (t, u, o, x, ot) -> InferedType.Primitive(t, u, InferedOptionality.Merge(o, containsOptional), x, ot)
+                | InferedType.Primitive (t, u, o, x, ot) ->
+                    InferedType.Primitive(t, u, InferedOptionality.Merge(o, containsOptional), x, ot)
                 | _ -> failwith "There should be only primitive types here."
             // If there are non primitives, keep the heterogeneous type.
             | [ singlePrimitive ], nonPrimitives ->
@@ -580,7 +582,11 @@ let inferPrimitiveType
             Some(InferedType.Primitive(typ, desiredUnit, Mandatory, false, PrimitiveType.String))
 
         match value with
-        | "" -> if inferEmptyAsNull then Some (InferedType.Null NullKind.NoValue) else None
+        | "" ->
+            if inferEmptyAsNull then
+                Some(InferedType.Null NullKind.NoValue)
+            else
+                None
         | Parse TextConversions.AsInteger 0 when booleanParsing = BooleanParsing.Lax -> makePrimitive typeof<Bit0>
         | Parse TextConversions.AsInteger 1 when booleanParsing = BooleanParsing.Lax -> makePrimitive typeof<Bit1>
         | ParseNoCulture (TextConversions.AsBoolean booleanParsing) _ -> makePrimitive typeof<bool>
@@ -598,7 +604,11 @@ let inferPrimitiveType
     /// Parses values looking like "typeof<int> or typeof<int<metre>>" and returns the appropriate type.
     let matchInlineSchema useInlineSchemasOverrides value =
         match value with
-        | "" -> if inferEmptyAsNull then Some (InferedType.Null NullKind.NoValue) else None
+        | "" ->
+            if inferEmptyAsNull then
+                Some(InferedType.Null NullKind.NoValue)
+            else
+                None
         | nonEmptyValue ->
             // Validates that it looks like an inline schema before trying to extract the type and unit:
             let m = validInlineSchema.Value.Match(nonEmptyValue)
@@ -616,7 +626,9 @@ let inferPrimitiveType
                 | Some (typ, typeWrapper), unit ->
                     match typeWrapper with
                     | TypeWrapper.None ->
-                        Some(InferedType.Primitive(typ, unit, Mandatory, useInlineSchemasOverrides, PrimitiveType.String))
+                        Some(
+                            InferedType.Primitive(typ, unit, Mandatory, useInlineSchemasOverrides, PrimitiveType.String)
+                        )
                     // To keep it simple and prevent weird situations (and preserve backward compat),
                     // only structural inference can create optional types.
                     // Optional types in inline schemas are not allowed.

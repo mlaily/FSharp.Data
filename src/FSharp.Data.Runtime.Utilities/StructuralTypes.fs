@@ -109,16 +109,14 @@ type InferedOptionality =
         | Mandatory -> false
 
     static member FromBool(optional) =
-        if optional then
-            Optional NullKind.NoValue
-        else Mandatory
+        if optional then Optional NullKind.NoValue else Mandatory
 
     static member Merge(opt1, opt2) =
         match opt1, opt2 with
         | Mandatory, Mandatory -> Mandatory
         | Optional k, Mandatory
         | Mandatory, Optional k -> Optional k
-        | Optional k1, Optional k2 -> Optional (NullKind.Merge(k1, k2))
+        | Optional k1, Optional k2 -> Optional(NullKind.Merge(k1, k2))
 
 [<Obsolete("This API will be made internal in a future release. Please file an issue at https://github.com/fsprojects/FSharp.Data/issues/1458 if you need this public.")>]
 [<DefaultAugmentation(false)>]
@@ -163,7 +161,10 @@ type InferedType =
         originalType: PrimitiveType
     | Record of name: string option * fields: InferedProperty list * optional: InferedOptionality
     | Json of typ: InferedType * optional: InferedOptionality
-    | Collection of order: InferedTypeTag list * types: Map<InferedTypeTag, InferedMultiplicity * InferedType> * optional: InferedOptionality
+    | Collection of
+        order: InferedTypeTag list *
+        types: Map<InferedTypeTag, InferedMultiplicity * InferedType> *
+        optional: InferedOptionality
     | Heterogeneous of types: Map<InferedTypeTag, InferedType> * containsOptional: InferedOptionality
     | Null of kind: NullKind
     | Top
@@ -212,13 +213,15 @@ type InferedType =
         | Primitive (typ, _, Mandatory, _, _) when
             allowEmptyValues
             && InferedType.CanHaveEmptyValues typ
-            -> x
-        | Null k -> Null (NullKind.Merge(k, nullKind))
+            ->
+            x
+        | Null k -> Null(NullKind.Merge(k, nullKind))
         | Primitive (typ, unit, optional, overrideOnMerge, originalType) ->
             Primitive(typ, unit, InferedOptionality.Merge(optional, Optional nullKind), overrideOnMerge, originalType)
         | Record (name, props, optional) -> Record(name, props, InferedOptionality.Merge(optional, Optional nullKind))
         | Json (typ, optional) -> Json(typ, InferedOptionality.Merge(optional, Optional nullKind))
-        | Heterogeneous (map, containsOptional) -> Heterogeneous(map, InferedOptionality.Merge(containsOptional, Optional nullKind))
+        | Heterogeneous (map, containsOptional) ->
+            Heterogeneous(map, InferedOptionality.Merge(containsOptional, Optional nullKind))
         | Collection (order, types, optional) ->
             let typesR =
                 types
@@ -306,7 +309,9 @@ type InferedType =
                 indented ("}") |> ignore
             | Collection (order, types, optional) ->
 
-                indented ($"[*Array* Optional: {optional}") |> ignore
+                indented ($"[*Array* Optional: {optional}")
+                |> ignore
+
                 pushIndent ()
 
                 for (typTag, (multiplicity, inferedType)) in InferedCollection.inOrder order types do
@@ -406,7 +411,7 @@ type TypeWrapper =
     | Option
     /// The type T will be converter to type Nullable<T>
     | Nullable
-    static member FromOption (optional: InferedOptionality) =
+    static member FromOption(optional: InferedOptionality) =
         match optional with
         | Optional _ -> TypeWrapper.Option
         | Mandatory -> TypeWrapper.None

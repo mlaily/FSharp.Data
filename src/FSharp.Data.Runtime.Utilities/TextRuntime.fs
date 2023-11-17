@@ -64,7 +64,8 @@ type TextRuntime =
         )
 
     static member ConvertBoolean(text) =
-        text |> Option.bind (TextConversions.AsBoolean BooleanParsing.Lax)
+        text
+        |> Option.bind (TextConversions.AsBoolean BooleanParsing.Lax)
 
     static member ConvertDateTime(cultureStr, text) =
         text

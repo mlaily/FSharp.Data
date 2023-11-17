@@ -30,7 +30,15 @@ let private getAttributes unitsOfMeasureProvider inferenceMode cultureInfo (elem
              && attr.Name.ToString() <> "xmlns" then
               yield
                   { Name = attr.Name.ToString()
-                    Type = inferPrimitiveType unitsOfMeasureProvider inferenceMode cultureInfo attr.Value None true BooleanParsing.Lax } ]
+                    Type =
+                      inferPrimitiveType
+                          unitsOfMeasureProvider
+                          inferenceMode
+                          cultureInfo
+                          attr.Value
+                          None
+                          true
+                          BooleanParsing.Lax } ]
 
 let getInferedTypeFromValue unitsOfMeasureProvider inferenceMode cultureInfo (element: XElement) =
     let typ =
@@ -102,7 +110,9 @@ let inferGlobalType unitsOfMeasureProvider inferenceMode cultureInfo allowEmptyV
 
             let body = { Name = ""; Type = bodyType }
 
-            let record = InferedType.Record(Some(name.ToString()), body :: attributes, Mandatory)
+            let record =
+                InferedType.Record(Some(name.ToString()), body :: attributes, Mandatory)
+
             name.ToString(), (elements, record))
         |> Map.ofSeq
 

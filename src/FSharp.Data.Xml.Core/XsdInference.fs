@@ -273,7 +273,14 @@ module internal XsdInference =
         else
             match elm.Type with
             | SimpleType typeCode ->
-                let ty = InferedType.Primitive(getType typeCode, None, InferedOptionality.FromBool(elm.IsNillable), false, PrimitiveType.String)
+                let ty =
+                    InferedType.Primitive(
+                        getType typeCode,
+                        None,
+                        InferedOptionality.FromBool(elm.IsNillable),
+                        false,
+                        PrimitiveType.String
+                    )
 
                 let prop = { InferedProperty.Name = ""; Type = ty }
                 let props = if elm.IsNillable then [ prop; nil ] else [ prop ]
@@ -298,7 +305,14 @@ module internal XsdInference =
             cty.Attributes
             |> List.map (fun (name, typeCode, optional) ->
                 { Name = formatName name
-                  Type = InferedType.Primitive(getType typeCode, None, InferedOptionality.FromBool(optional), false, PrimitiveType.String) })
+                  Type =
+                    InferedType.Primitive(
+                        getType typeCode,
+                        None,
+                        InferedOptionality.FromBool(optional),
+                        false,
+                        PrimitiveType.String
+                    ) })
 
         match cty.Contents with
         | SimpleContent typeCode ->

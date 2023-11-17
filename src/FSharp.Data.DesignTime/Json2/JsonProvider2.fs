@@ -63,7 +63,7 @@ type public JsonProvider2(cfg: TypeProviderConfig) as this =
         let inferenceMode = args.[8] :?> InferenceMode
 
         let inferenceMode =
-            InferenceMode'.FromPublicApi(inferenceMode, legacyInferTypesFromValues=true)
+            InferenceMode'.FromPublicApi(inferenceMode, legacyInferTypesFromValues = true)
 
         let cultureInfo = TextRuntime.GetCulture cultureStr
         let unitsOfMeasureProvider = ProviderHelpers.unitsOfMeasureProvider
@@ -105,8 +105,7 @@ type public JsonProvider2(cfg: TypeProviderConfig) as this =
               CreateFromTextReader = fun reader -> result.Convert <@@ JsonWrapper.Create(%reader) @@>
               CreateListFromTextReader = Some(fun reader -> result.Convert <@@ JsonWrapper.CreateList(%reader) @@>)
               CreateFromTextReaderForSampleList = fun reader -> result.Convert <@@ JsonWrapper.CreateList(%reader) @@>
-              CreateFromValue =
-                Some(typeof<JsonNode>, (fun value -> result.Convert <@@ JsonWrapper(%value) @@>)) }
+              CreateFromValue = Some(typeof<JsonNode>, (fun value -> result.Convert <@@ JsonWrapper(%value) @@>)) }
 
         let source = if sampleIsList then SampleList sample else Sample sample
 
