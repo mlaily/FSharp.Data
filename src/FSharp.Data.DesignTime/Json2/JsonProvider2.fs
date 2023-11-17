@@ -12,6 +12,7 @@ open FSharp.Data.Runtime.BaseTypes
 open FSharp.Data.Runtime.StructuralTypes
 open FSharp.Data.Runtime.StructuralInference
 open System.Net
+open System.Text.Json.Nodes
 
 // ----------------------------------------------------------------------------------------------
 
@@ -73,10 +74,10 @@ type public JsonProvider2(cfg: TypeProviderConfig) as this =
                 use _holder = IO.logTime "Parsing" sample
 
                 if sampleIsList then
-                    JsonDocument2.CreateList(new StringReader(value))
-                    |> Array.map (fun doc -> doc.JsonValue)
+                    JsonWrapper.CreateList(new StringReader(value))
+                    |> Array.map (fun doc -> doc.JsonNode)
                 else
-                    [| JsonValue2.Parse(value) |]
+                    [| JsonWrapper.ParseNode(value) |]
 
             let inferedType =
                 use _holder = IO.logTime "Inference" sample
@@ -100,12 +101,12 @@ type public JsonProvider2(cfg: TypeProviderConfig) as this =
             let result = JsonTypeBuilder2.generateJsonType ctx false false rootName inferedType
 
             { GeneratedType = tpType
-              RepresentationType = result.ConvertedType
-              CreateFromTextReader = fun reader -> result.Convert <@@ JsonDocument2.Create(%reader) @@>
-              CreateListFromTextReader = Some(fun reader -> result.Convert <@@ JsonDocument2.CreateList(%reader) @@>)
-              CreateFromTextReaderForSampleList = fun reader -> result.Convert <@@ JsonDocument2.CreateList(%reader) @@>
+              RepresentationType = result.RepresentationType
+              CreateFromTextReader = fun reader -> result.Convert <@@ JsonWrapper.Create(%reader) @@>
+              CreateListFromTextReader = Some(fun reader -> result.Convert <@@ JsonWrapper.CreateList(%reader) @@>)
+              CreateFromTextReaderForSampleList = fun reader -> result.Convert <@@ JsonWrapper.CreateList(%reader) @@>
               CreateFromValue =
-                Some(typeof<JsonValue2>, (fun value -> result.Convert <@@ JsonDocument2.Create(%value, "") @@>)) }
+                Some(typeof<JsonNode>, (fun value -> result.Convert <@@ JsonWrapper(%value) @@>)) }
 
         let source = if sampleIsList then SampleList sample else Sample sample
 

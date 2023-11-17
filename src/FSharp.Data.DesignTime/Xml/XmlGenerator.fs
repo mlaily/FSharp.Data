@@ -28,6 +28,7 @@ type internal XmlGenerationContext =
       // to nameclash type names
       UniqueNiceName: string -> string
       UnifyGlobally: bool
+      XmlRuntimeType: Type
       XmlTypeCache: Dictionary<InferedType, XmlGenerationResult>
       JsonTypeCache: Dictionary<InferedType, ProvidedTypeDefinition> }
     static member Create(unitsOfMeasureProvider, inferenceMode, cultureStr, tpType, unifyGlobally) =
@@ -39,6 +40,7 @@ type internal XmlGenerationContext =
           InferenceMode = inferenceMode
           ProvidedType = tpType
           UniqueNiceName = uniqueNiceName
+          XmlRuntimeType = typeof<XmlRuntime>
           UnifyGlobally = unifyGlobally
           XmlTypeCache = Dictionary()
           JsonTypeCache = Dictionary() }
@@ -234,8 +236,7 @@ module internal XmlTypeBuilder =
                               fun (Singleton xml) ->
                                   // XmlRuntime.ConvertAsName checks that the name of the current element
                                   // has the required name and returns Some/None
-                                  let xmlRuntime = typeof<XmlRuntime>
-                                  (xmlRuntime?ConvertAsName (result.ConvertedType) (xml, nameWithNS, convFunc): Expr)
+                                  (ctx.XmlRuntimeType?(nameof (XmlRuntime.ConvertAsName)) (result.ConvertedType) (xml, nameWithNS, convFunc): Expr)
                       ),
                       ((if result.ConvertedType :? ProvidedTypeDefinition then
                             ""
@@ -500,9 +501,7 @@ module internal XmlTypeBuilder =
                                           typ,
                                           getterCode =
                                               fun (Singleton xml) ->
-                                                  let xmlRuntime = typeof<XmlRuntime>
-
-                                                  xmlRuntime?ConvertArray
+                                                  ctx.XmlRuntimeType?(nameof (XmlRuntime.ConvertArray))
                                                       (result.ConvertedType)
                                                       (xml, nameWithNS, convFunc)
                                       ),
@@ -519,9 +518,8 @@ module internal XmlTypeBuilder =
                                               result.ConvertedType,
                                               getterCode =
                                                   fun (Singleton xml) ->
-                                                      let xmlRuntime = typeof<XmlRuntime>
 
-                                                      xmlRuntime?ConvertOptional2
+                                                      ctx.XmlRuntimeType?(nameof (XmlRuntime.ConvertOptional2))
                                                           (result.ConvertedType.GenericTypeArguments.[0])
                                                           (xml, nameWithNS, convFunc)
                                           ),
@@ -535,9 +533,7 @@ module internal XmlTypeBuilder =
                                               typ,
                                               getterCode =
                                                   fun (Singleton xml) ->
-                                                      let xmlRuntime = typeof<XmlRuntime>
-
-                                                      xmlRuntime?ConvertOptional
+                                                      ctx.XmlRuntimeType?(nameof (XmlRuntime.ConvertOptional))
                                                           (result.ConvertedType)
                                                           (xml, nameWithNS, convFunc)
                                           ),
@@ -563,7 +559,7 @@ module internal XmlTypeBuilder =
                 @ primitiveElemProperties @ childElemProperties
             )
 
-            let createConstrutor primitiveParam =
+            let createConstructor primitiveParam =
                 let parameters =
                     match primitiveParam with
                     | Some primitiveParam ->
@@ -610,10 +606,10 @@ module internal XmlTypeBuilder =
                 objectTy.AddMember ctor
 
             if primitiveElemParameters.Length = 0 then
-                createConstrutor None
+                createConstructor None
             else
                 for primitiveParam in primitiveElemParameters do
-                    createConstrutor (Some primitiveParam)
+                    createConstructor (Some primitiveParam)
 
             let ctorCode (Singleton arg: Expr list) =
                 <@@ XmlElement.Create(%%arg: XElement) @@>

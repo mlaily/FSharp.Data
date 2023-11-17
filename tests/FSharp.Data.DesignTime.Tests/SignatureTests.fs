@@ -5,6 +5,7 @@ open System.IO
 open FsUnit
 open NUnit.Framework
 open ProviderImplementation
+open FSharp.Data
 
 let (++) a b = Path.Combine(a, b)
 
@@ -51,3 +52,75 @@ let ``Generating expressions works in netstandard2.0 `` (testCaseSpec: string) =
     let _, testCase = TypeProviderInstantiation.Parse testCaseSpec
     let assemblyRefs = TypeProviderInstantiation.GetRuntimeAssemblyRefs()
     testCase.Dump(resolutionFolder, "", netstandard2RuntimeAssembly, assemblyRefs, signatureOnly=false, ignoreOutput=true) |> ignore
+
+[<Test>]
+let mytestXml () =
+    let assemblyRefs = TypeProviderInstantiation.GetRuntimeAssemblyRefs()
+    let xmlProviderInst =
+        TypeProviderInstantiation.Xml 
+            {
+                Sample = """
+<root>
+    <test a="1">asdf</test>
+</root>"""
+                SampleIsList = false
+                Global = false
+                Culture = ""
+                Encoding = ""
+                ResolutionFolder = ""
+                EmbeddedResource = ""
+                InferTypesFromValues = true
+                Schema = ""
+                InferenceMode = InferenceMode.ValuesAndInlineSchemasOverrides
+            }
+    let output = xmlProviderInst.Dump(resolutionFolder, "", netstandard2RuntimeAssembly, assemblyRefs, signatureOnly=false, ignoreOutput=false)
+    ()
+
+[<Test>]
+let mytestJson () =
+    let assemblyRefs =
+        TypeProviderInstantiation.GetRuntimeAssemblyRefs()
+    let jsonProviderInst =
+        TypeProviderInstantiation.Json
+            {
+                Sample = """
+{"a": [ 1, null ]}
+//{ "aa": null, "a": [ 1, "x", null, [42], {"b": 123} ]} 
+"""
+                SampleIsList = false
+                RootName = ""
+                Culture = ""
+                Encoding = ""
+                ResolutionFolder = ""
+                EmbeddedResource = ""
+                PreferDictionaries = false
+                InferTypesFromValues = true
+                InferenceMode = InferenceMode.ValuesAndInlineSchemasOverrides
+            }
+    let output = jsonProviderInst.Dump(resolutionFolder, "", netstandard2RuntimeAssembly, assemblyRefs, signatureOnly=false, ignoreOutput=false)
+    ()
+
+
+[<Test>]
+let mytestJson2 () =
+    let assemblyRefs =
+        @"D:\Data\Dev\Archival-Mess\FSharp.Data\packages\System.Text.Json\lib\netstandard2.0\System.Text.Json.dll"
+        :: TypeProviderInstantiation.GetRuntimeAssemblyRefs()
+    let jsonProvider2Inst =
+        TypeProviderInstantiation.Json2
+            {
+                Sample = """
+{"a": [ 1, null ]}
+//{ "aa": null, "a": [ 1, "x", null, [42], {"b": 123} ]} 
+"""
+                SampleIsList = false
+                RootName = ""
+                Culture = ""
+                Encoding = ""
+                ResolutionFolder = ""
+                EmbeddedResource = ""
+                PreferDictionaries = false
+                InferenceMode = InferenceMode.ValuesAndInlineSchemasOverrides
+            }
+    let output = jsonProvider2Inst.Dump(resolutionFolder, "", netstandard2RuntimeAssembly, assemblyRefs, signatureOnly=false, ignoreOutput=false)
+    ()

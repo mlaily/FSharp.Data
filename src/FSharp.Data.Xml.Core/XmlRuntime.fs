@@ -135,8 +135,8 @@ type XmlRuntime =
         | [| it |] -> it
         | array -> failwithf "XML mismatch: Expected exactly one '%s' child, got %d" nameWithNS array.Length
 
-    // Functions that transform specified chidlrens using a transformation
-    // function - we need a version for array and option
+    // Functions that transform specified children using a transformation function.
+    // We need a version for array and option
     // (This is used e.g. when transforming `<a>1</a><a>2</a>` to `int[]`)
 
     static member ConvertArray<'R>(xml: XmlElement, nameWithNS, f: Func<XmlElement, 'R>) : 'R[] =

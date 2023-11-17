@@ -51,6 +51,17 @@ type internal JsonProviderArgs =
       PreferDictionaries : bool
       InferenceMode: InferenceMode }
 
+type internal JsonProvider2Args =
+    { Sample : string
+      SampleIsList : bool
+      RootName : string
+      Culture : string
+      Encoding : string
+      ResolutionFolder : string
+      EmbeddedResource : string
+      PreferDictionaries : bool
+      InferenceMode: InferenceMode }
+
 type internal HtmlProviderArgs =
     { Sample : string
       PreferOptionals : bool
@@ -69,6 +80,7 @@ type internal TypeProviderInstantiation =
     | Csv of CsvProviderArgs
     | Xml of XmlProviderArgs
     | Json of JsonProviderArgs
+    | Json2 of JsonProvider2Args
     | Html of HtmlProviderArgs
     | WorldBank of WorldBankProviderArgs
 
@@ -117,6 +129,17 @@ type internal TypeProviderInstantiation =
                    box x.InferTypesFromValues
                    box x.PreferDictionaries
                    box x.InferenceMode |]
+            | Json2 x -> 
+                (fun cfg -> new JsonProvider2(cfg) :> TypeProviderForNamespaces),
+                [| box x.Sample
+                   box x.SampleIsList
+                   box x.RootName
+                   box x.Culture
+                   box x.Encoding
+                   box x.ResolutionFolder
+                   box x.EmbeddedResource
+                   box x.PreferDictionaries
+                   box x.InferenceMode |]
             | Html x ->
                 (fun cfg -> new HtmlProvider(cfg) :> TypeProviderForNamespaces),
                 [| box x.Sample
@@ -163,6 +186,14 @@ type internal TypeProviderInstantiation =
              x.RootName
              x.Culture
              x.InferTypesFromValues.ToString()
+             x.PreferDictionaries.ToString()
+             x.InferenceMode.ToString() ]
+        | Json2 x ->
+            ["Json2"
+             x.Sample
+             x.SampleIsList.ToString()
+             x.RootName
+             x.Culture
              x.PreferDictionaries.ToString()
              x.InferenceMode.ToString() ]
         | Html x ->
@@ -236,6 +267,16 @@ type internal TypeProviderInstantiation =
                    InferTypesFromValues = args.[5] |> bool.Parse
                    PreferDictionaries = args.[6] |> bool.Parse
                    InferenceMode = args.[7] |> InferenceMode.Parse }
+        | "Json2" ->
+            Json2 { Sample = args.[1]
+                    SampleIsList = args.[2] |> bool.Parse
+                    RootName = args.[3]
+                    Culture = args.[4]
+                    Encoding = ""
+                    ResolutionFolder = ""
+                    EmbeddedResource = ""
+                    PreferDictionaries = args.[5] |> bool.Parse
+                    InferenceMode = args.[6] |> InferenceMode.Parse }
         | "Html" ->
             Html { Sample = args.[1]
                    PreferOptionals = args.[2] |> bool.Parse
@@ -265,6 +306,7 @@ type internal TypeProviderInstantiation =
               "FSharp.Data.Html.Core"
               "FSharp.Data.Xml.Core"
               "FSharp.Data.Json.Core" 
+              "FSharp.Data.Json.Core2" 
               "FSharp.Data.WorldBank.Core" ]
         let extraRefs = 
             [ for j in  extraDlls do

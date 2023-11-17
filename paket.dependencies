@@ -16,6 +16,8 @@ nuget Microsoft.SourceLink.GitHub 1.0 copy_local: true
 nuget Microsoft.SourceLink.Common 1.0 copy_local: true
 nuget Microsoft.Build.Tasks.Git 1.0 copy_local: true
 
+nuget System.Text.Json 6.0
+
 group Fake
     source https://api.nuget.org/v3/index.json
     storage: none

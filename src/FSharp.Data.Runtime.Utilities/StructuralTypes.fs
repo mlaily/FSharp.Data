@@ -79,12 +79,16 @@ type PrimitiveType =
         | 3 -> Some Bool
         | _ -> failwith $"PrimitiveType value {x} is not mapped."
 
+// TODO: might be adapted for use with the xml provider: it doesn't have null tokens, but we currently cannot distinguish between an attribute with value "" from a missing attribute.
+// (for types other than string, we are only able to generate missing attributes)
 /// Used to keep track of why something was inferred as optional/null,
 /// and be able to serialize back to the correct representation. (e.g. null token for the json provider)
 [<RequireQualifiedAccess>]
 [<Obsolete("This API will be made internal in a future release. Please file an issue at https://github.com/fsprojects/FSharp.Data/issues/1458 if you need this public.")>]
 type NullKind =
+    /// Something was inferred as null because the value was absent.
     | NoValue
+    /// Something was inferred as null because the value was an explicit null token.
     | NullToken
 
     static member Merge(k1, k2) =
@@ -119,7 +123,10 @@ type InferedOptionality =
 [<Obsolete("This API will be made internal in a future release. Please file an issue at https://github.com/fsprojects/FSharp.Data/issues/1458 if you need this public.")>]
 [<DefaultAugmentation(false)>]
 type OptionalCollection =
+    /// No `array option` will be generated, even if the collection was actually optional in the sample (e.g. sometimes null).
+    /// This only makes sense for providers that don't have null tokens, but it is the backward compatible choice for the JsonProvider.
     | Disallow
+    /// Allows generating `array option` types.
     | Allow
 
 module internal InferedCollection =
@@ -168,7 +175,8 @@ type InferedType =
         | Json (_, opt)
         | Collection (_, _, opt)
         | Heterogeneous (_, opt) -> opt
-        | _ -> Mandatory
+        | Null _
+        | Top -> Mandatory
 
     /// Should the generated type be wrapped in an option?
     /// optionalCollections can be set to Disallow for backward compatibility to avoid ever generating an `array option`...
@@ -178,6 +186,20 @@ type InferedType =
         | Heterogeneous _ -> false
         | Collection _ when optionalCollections = OptionalCollection.Disallow -> false
         | _ -> x.GetOptionality().IsOptional
+
+    ///// Should the generated type be wrapped in an option?
+    ///// optionalCollections can be set to Disallow for backward compatibility to avoid ever generating an `array option`...
+    //member x.IsExplicitlyOptional optionalCollections =
+    //    match x with
+    //    // Heterogeneous are already intrinsically a list of options.
+    //    | Heterogeneous (_, InferedOptionality.Optional NullKind.NoValue) -> // allows generating option of heterogeneous type (null can be handled at the heterogeneous type level, but missing value must be handled by parent)
+    //    // TODO: should heterogeneous types explicit optionality be handled at the type level or at the parent level??. if we want to be able to generate null tokens in collections of heterogeneous types, it probably has to be at the type level.
+    //    // but it also has to be at the parent level for missing values............
+    //        match optionalCollections with // todo: change optionalcollection parameter to reflect the fact it can also impact heterogeneous types (or add another parameter...)
+    //        | OptionalCollection.Allow -> true
+    //        | OptionalCollection.Disallow -> false
+    //    | Collection _ when optionalCollections = OptionalCollection.Disallow -> false
+    //    | _ -> x.GetOptionality().IsOptional
 
     static member CanHaveEmptyValues typ =
         typ = typeof<string> || typ = typeof<float>
